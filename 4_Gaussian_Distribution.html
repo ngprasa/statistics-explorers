@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gaussian Distribution Visualizer</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1100px;margin:20px auto;padding:0 16px;color:#222}
+h1{margin:0 0 4px}.sub{color:#666;margin-bottom:16px}.panel{border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{border:1px solid #ddd;border-radius:10px;padding:12px;background:#fafafa}
+label{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:8px}input[type=range]{width:100%}
+.checks{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}.checks label{font-weight:normal}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{text-align:center;border:1px solid #ddd;border-radius:9px;padding:8px}
+.k{font-size:13px;color:#666}.v{font-size:21px;font-weight:bold}.plot{border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff;margin-top:12px}
+svg{display:block;width:100%;height:auto}.note{font-size:13px;color:#666;margin-top:8px}button{border:1px solid #bbb;background:white;border-radius:8px;padding:7px 12px;cursor:pointer}
+@media(max-width:650px){.controls,.stats{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<h1>Gaussian Distribution Visualizer</h1>
+<div class="sub">Change the mean and variance and watch the distribution move and change shape.</div>
+<div class="panel">
+<div class="controls">
+<div class="card"><label>Mean μ <span id="muVal">175.0</span></label><input id="mu" type="range" min="140" max="210" step=".5" value="175"></div>
+<div class="card"><label>Variance σ² <span id="varVal">25.0</span></label><input id="variance" type="range" min="1" max="400" step="1" value="25"></div>
+</div>
+<div class="stats">
+<div class="stat"><div class="k">Mean μ</div><div class="v" id="muStat">175.0</div></div>
+<div class="stat"><div class="k">Variance σ²</div><div class="v" id="varStat">25.0</div></div>
+<div class="stat"><div class="k">Standard deviation σ</div><div class="v" id="sdStat">5.00</div></div>
+</div>
+<div class="checks">
+<label><input id="sd1" type="checkbox" checked> Show ±1σ</label>
+<label><input id="sd2" type="checkbox" checked> Show ±2σ</label>
+<label><input id="sd3" type="checkbox" checked> Show ±3σ</label>
+</div>
+<div class="plot"><svg id="plot" viewBox="0 0 1000 560"></svg></div>
+<div class="note">The horizontal axis is kept on a stable 140–210 scale, so changing μ visibly moves the distribution. Changing σ changes its spread and peak height.</div>
+</div>
+<div class="panel"><button id="reset">↺ Reset</button></div>
+<script>
+(()=>{const $=id=>document.getElementById(id);
+function q(){let mu=+$("mu").value,v=+$("variance").value;return{mu,v,sd:Math.sqrt(v)}}
+function pdf(x,mu,sd){return Math.exp(-.5*((x-mu)/sd)**2)/(sd*Math.sqrt(2*Math.PI))}
+function draw(){
+let a=q(),W=1000,H=560,L=70,R=30,T=45,B=65,xmin=140,xmax=210;
+let pw=W-L-R,ph=H-T-B, X=x=>L+(x-xmin)/(xmax-xmin)*pw;
+// Fixed vertical scale is intentional: both movement and change in peak height are visible.
+let ymax=0.09, Y=y=>H-B-(y/ymax)*ph, out='<rect width="1000" height="560" fill="white"/>';
+for(let i=1;i<=4;i++){let yy=H-B-ph*i/4;out+=`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#ddd" opacity=".45"/>`}
+let path='';for(let i=0;i<=800;i++){let x=xmin+(xmax-xmin)*i/800;path+=(i?'L':'M')+X(x).toFixed(2)+','+Y(pdf(x,a.mu,a.sd)).toFixed(2)}
+out+=`<path d="${path}" fill="none" stroke="#3267a8" stroke-width="4"/>`;
+out+=`<line x1="${X(a.mu)}" y1="${T}" x2="${X(a.mu)}" y2="${H-B}" stroke="#333" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="${X(a.mu)}" y="${T-12}" text-anchor="middle" font-size="15" font-weight="bold">μ = ${a.mu.toFixed(1)}</text>`;
+for(let k=1;k<=3;k++)if($("sd"+k).checked){
+for(let v of[a.mu-k*a.sd,a.mu+k*a.sd])if(v>=xmin&&v<=xmax){
+out+=`<line x1="${X(v)}" y1="${H-B}" x2="${X(v)}" y2="${H-B-32}" stroke="#d59b00" stroke-width="3"/>
+<text x="${X(v)}" y="${H-B+20}" text-anchor="middle" font-size="12">${v.toFixed(1)}</text>
+<text x="${X(v)}" y="${H-B-38}" text-anchor="middle" font-size="11">${v<a.mu?'−':'+'}${k}σ</text>`}}
+out+=`<line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#555" stroke-width="1.5"/>
+<text x="${W/2}" y="${H-18}" text-anchor="middle" font-size="14">X</text>`;
+for(let v=140;v<=210;v+=10)out+=`<line x1="${X(v)}" y1="${H-B}" x2="${X(v)}" y2="${H-B+6}" stroke="#555"/><text x="${X(v)}" y="${H-B+23}" text-anchor="middle" font-size="11">${v}</text>`;
+$("plot").innerHTML=out;$("muVal").textContent=a.mu.toFixed(1);$("varVal").textContent=a.v.toFixed(1);$("muStat").textContent=a.mu.toFixed(1);$("varStat").textContent=a.v.toFixed(1);$("sdStat").textContent=a.sd.toFixed(2)}
+["mu","variance","sd1","sd2","sd3"].forEach(id=>$(id).addEventListener("input",draw));$("reset").onclick=()=>{$("mu").value=175;$("variance").value=25;draw()};draw();
+})();
+</script></body></html>

@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Student's t Distribution</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1120px;margin:20px auto;padding:0 16px;color:#222}
+h1{margin:0 0 5px}.sub{color:#666;margin-bottom:16px;line-height:1.45}
+.panel{border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}
+.definition{font-size:15px;line-height:1.58}
+.controls{display:grid;grid-template-columns:1fr 1.25fr;gap:12px}
+.card{border:1px solid #ddd;border-radius:10px;padding:12px;background:#fafafa}
+label{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:8px}
+input[type=range]{width:100%;accent-color:#555}
+.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+button{border:1px solid #aaa;background:white;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px}
+.mode{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.mode label{font-weight:normal;display:inline-flex;gap:6px;align-items:center;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.stat{text-align:center;border:1px solid #ddd;border-radius:9px;padding:9px}
+.k{font-size:12px;color:#666}.v{font-size:19px;font-weight:bold;margin-top:3px}
+.plot{border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff;margin-top:12px}
+svg{display:block;width:100%;height:auto}
+.note{font-size:13px;color:#666;margin-top:8px;line-height:1.45}
+.formula{font-size:23px;text-align:center;margin:12px 0;font-weight:bold}
+.conditions{font-size:14px;line-height:1.55}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.key{display:inline-flex;align-items:center;gap:6px}
+.line{width:27px;height:3px;background:#333;display:inline-block}
+.line.normal{height:0;background:none;border-top:3px dashed #888}
+.swatch{width:20px;height:12px;background:#bbb;opacity:.45;border:1px solid #888;display:inline-block}
+.bigidea{font-size:15px;line-height:1.6}
+@media(max-width:760px){.controls{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<h1>Student's t Distribution</h1>
+<div class="sub">Change the degrees of freedom, compare the t distribution with the standard normal, and explore areas under the t curve.</div>
+
+<div class="panel definition">
+<strong>Definition</strong><br>
+If <strong>Z</strong> has a standard normal distribution, <strong>V</strong> has a chi-square distribution with ν degrees of freedom, and Z and V are independent, then
+<div class="formula">T = Z / √(V / ν)</div>
+has a <strong>Student's t distribution with ν degrees of freedom</strong>.
+<div class="note">This representation shows t as a standard-normal quantity divided by a random estimate of scale. It is the bridge to the familiar t-statistic formula used later.</div>
+</div>
+
+<div class="panel">
+<div class="controls">
+<div class="card">
+<label for="df">Degrees of freedom ν <span id="dfVal">5</span></label>
+<input id="df" type="range" min="1" max="100" step="1" value="5">
+<div class="buttons">
+<button data-df="1">1</button><button data-df="2">2</button><button data-df="5">5</button>
+<button data-df="10">10</button><button data-df="30">30</button><button data-df="100">100</button>
+</div>
+</div>
+<div class="card">
+<label for="tval">Selected t value <span id="tVal">1.50</span></label>
+<input id="tval" type="range" min="-5" max="5" step="0.05" value="1.5">
+<div class="mode">
+<label><input type="radio" name="area" value="left" checked> Left area</label>
+<label><input type="radio" name="area" value="right"> Right area</label>
+<label><input type="radio" name="area" value="central"> Central area ±|t|</label>
+<label><input type="radio" name="area" value="twotail"> Two tails beyond ±|t|</label>
+</div>
+</div>
+</div>
+</div>
+
+<div class="panel">
+<div class="stats">
+<div class="stat"><div class="k">df (ν)</div><div class="v" id="dfStat">5</div></div>
+<div class="stat"><div class="k">Mean of t</div><div class="v" id="meanStat">0</div></div>
+<div class="stat"><div class="k">Variance of t</div><div class="v" id="varStat">1.667</div></div>
+<div class="stat"><div class="k">Selected area</div><div class="v" id="areaStat">—</div></div>
+</div>
+<div class="note" id="momentNote"></div>
+</div>
+
+<div class="panel">
+<div class="plot"><svg id="plot" viewBox="0 0 1100 560"></svg></div>
+<div class="legend">
+<span class="key"><span class="line"></span> t distribution</span>
+<span class="key"><span class="line normal"></span> standard normal</span>
+<span class="key"><span class="swatch"></span> selected area under t</span>
+</div>
+<div class="note">The standard normal curve is fixed. As the degrees of freedom increase, the t distribution approaches it. At low df, the t distribution has a lower centre and heavier tails.</div>
+</div>
+
+<div class="panel conditions">
+<strong>Mean and variance of a t distribution</strong><br><br>
+Mean: <strong>0</strong> when ν &gt; 1; undefined when ν ≤ 1.<br>
+Variance: <strong>ν / (ν − 2)</strong> when ν &gt; 2.<br>
+For 1 &lt; ν ≤ 2, the variance is infinite. For ν ≤ 1, it is undefined.
+</div>
+
+<div class="panel bigidea">
+<strong>Things to notice</strong>
+<ol>
+<li>Set df = 1, 2, 5, 10, 30 and 100. Watch how the tails change relative to the standard normal.</li>
+<li>At low df, compare the height near 0 with the standard normal. Where has the extra probability gone?</li>
+<li>Keep the selected t value fixed and increase df. How does the tail probability change?</li>
+<li>Try the central-area option. For the same |t|, compare the central probability for low and high df.</li>
+<li>At large df, explain why the t distribution begins to behave almost like Z.</li>
+</ol>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+
+function logGamma(z){
+const p=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.6150291621406,12.507343278686905,-0.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];
+if(z<0.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-logGamma(1-z);
+z-=1;let x=p[0];for(let i=1;i<p.length;i++)x+=p[i]/(z+i);let t=z+7.5;
+return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+function betacf(a,b,x){
+const MAXIT=200,EPS=3e-14,FPMIN=1e-300;let qab=a+b,qap=a+1,qam=a-1,c=1,d=1-qab*x/qap;
+if(Math.abs(d)<FPMIN)d=FPMIN;d=1/d;let h=d;
+for(let m=1;m<=MAXIT;m++){let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;h*=d*c;
+aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<FPMIN)d=FPMIN;c=1+aa/c;if(Math.abs(c)<FPMIN)c=FPMIN;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<EPS)break;}
+return h;
+}
+function ibeta(x,a,b){
+if(x<=0)return 0;if(x>=1)return 1;
+let bt=Math.exp(logGamma(a+b)-logGamma(a)-logGamma(b)+a*Math.log(x)+b*Math.log(1-x));
+if(x<(a+1)/(a+b+2))return bt*betacf(a,b,x)/a;
+return 1-bt*betacf(b,a,1-x)/b;
+}
+function tpdf(x,nu){
+return Math.exp(logGamma((nu+1)/2)-logGamma(nu/2))/Math.sqrt(nu*Math.PI)*Math.pow(1+x*x/nu,-(nu+1)/2);
+}
+function tcdf(t,nu){
+if(t===0)return 0.5;
+let x=nu/(nu+t*t),ib=ibeta(x,nu/2,0.5);
+return t>0?1-0.5*ib:0.5*ib;
+}
+function npdf(x){return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI)}
+function mode(){return document.querySelector('input[name="area"]:checked').value}
+function selectedArea(t,nu,m){
+let F=tcdf(t,nu),a=Math.abs(t),Fa=tcdf(a,nu);
+if(m==="left")return F;if(m==="right")return 1-F;if(m==="central")return 2*Fa-1;return 2*(1-Fa);
+}
+function moments(nu){
+if(nu<=1)return {mean:"undefined",variance:"undefined",note:"For df ≤ 1, the mean is undefined; therefore the variance is also undefined."};
+if(nu<=2)return {mean:"0",variance:"∞",note:"For 1 < df ≤ 2, the mean exists and equals 0, but the variance is infinite."};
+let v=(nu/(nu-2)).toFixed(3);return {mean:"0",variance:v,note:`For df > 2, Var(T) = df/(df−2) = ${v}. As df increases, the variance approaches 1.`};
+}
+function draw(){
+let nu=+$("df").value,t=+$("tval").value,m=mode(),mm=moments(nu);
+$("dfVal").textContent=nu;$("tVal").textContent=t.toFixed(2);$("dfStat").textContent=nu;
+$("meanStat").textContent=mm.mean;$("varStat").textContent=mm.variance;$("momentNote").textContent=mm.note;
+$("areaStat").textContent=selectedArea(t,nu,m).toFixed(4);
+
+let W=1100,H=560,L=70,R=35,T=45,B=65,pw=W-L-R,ph=H-T-B,xmin=-6,xmax=6;
+let X=x=>L+(x-xmin)/(xmax-xmin)*pw,ymax=0.43,Y=y=>H-B-(y/ymax)*ph,base=H-B;
+let out=`<rect width="${W}" height="${H}" fill="white"/><text x="${W/2}" y="25" text-anchor="middle" font-size="19" font-weight="bold">t distribution with df = ${nu}</text>`;
+for(let i=1;i<=4;i++){let yy=base-ph*i/4;out+=`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#ddd" opacity=".5"/>`}
+
+function shade(a,b){
+a=Math.max(xmin,a);b=Math.min(xmax,b);if(b<=a)return "";
+let d=`M ${X(a)} ${base}`;
+for(let i=0;i<=300;i++){let x=a+(b-a)*i/300;d+=` L ${X(x).toFixed(2)} ${Y(tpdf(x,nu)).toFixed(2)}`;}
+d+=` L ${X(b)} ${base} Z`;return `<path d="${d}" fill="#999" opacity=".28"/>`;
+}
+if(m==="left")out+=shade(xmin,t);
+else if(m==="right")out+=shade(t,xmax);
+else if(m==="central"){let a=Math.abs(t);out+=shade(-a,a);}
+else{let a=Math.abs(t);out+=shade(xmin,-a)+shade(a,xmax);}
+
+let pT="",pN="";
+for(let i=0;i<=900;i++){let x=xmin+(xmax-xmin)*i/900;pT+=(i?"L":"M")+X(x).toFixed(2)+","+Y(tpdf(x,nu)).toFixed(2);pN+=(i?"L":"M")+X(x).toFixed(2)+","+Y(npdf(x)).toFixed(2);}
+out+=`<path d="${pN}" fill="none" stroke="#888" stroke-width="3" stroke-dasharray="9 6"/><path d="${pT}" fill="none" stroke="#333" stroke-width="4"/>`;
+
+if(m==="left"||m==="right"){out+=`<line x1="${X(t)}" y1="${T}" x2="${X(t)}" y2="${base}" stroke="#222" stroke-width="2"/><text x="${X(t)}" y="${T+16}" text-anchor="middle" font-size="12" font-weight="bold">t = ${t.toFixed(2)}</text>`;}
+else{let a=Math.abs(t);for(const q of [-a,a])out+=`<line x1="${X(q)}" y1="${T}" x2="${X(q)}" y2="${base}" stroke="#222" stroke-width="2"/>`;out+=`<text x="${X(-a)}" y="${T+16}" text-anchor="middle" font-size="12">−|t|</text><text x="${X(a)}" y="${T+16}" text-anchor="middle" font-size="12">+|t|</text>`;}
+
+out+=`<line x1="${L}" y1="${base}" x2="${W-R}" y2="${base}" stroke="#555" stroke-width="1.5"/>`;
+for(let x=-6;x<=6;x++)out+=`<line x1="${X(x)}" y1="${base}" x2="${X(x)}" y2="${base+6}" stroke="#555"/><text x="${X(x)}" y="${base+23}" text-anchor="middle" font-size="11">${x}</text>`;
+out+=`<text x="${W/2}" y="${H-18}" text-anchor="middle" font-size="14">t</text>`;
+$("plot").innerHTML=out;
+}
+$("df").addEventListener("input",draw);$("tval").addEventListener("input",draw);
+document.querySelectorAll('input[name="area"]').forEach(r=>r.addEventListener("change",draw));
+document.querySelectorAll("[data-df]").forEach(b=>b.addEventListener("click",()=>{$("df").value=b.dataset.df;draw();}));
+draw();
+})();
+</script>
+</body>
+</html>

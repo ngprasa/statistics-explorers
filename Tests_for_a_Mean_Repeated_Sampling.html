@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tests for a Mean — Repeated Sampling</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:#222;font-family:Arial,Helvetica,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:18px 22px 28px}
+h1{font-size:27px;margin:0 0 5px;font-weight:700}
+.sub{color:#555;margin-bottom:14px;font-size:14px}
+.tabs{display:flex;gap:8px;border-bottom:1px solid #aaa;margin-bottom:14px}
+.tab{padding:10px 18px;border:1px solid #aaa;border-bottom:none;background:#eee;cursor:pointer;font-weight:700;border-radius:6px 6px 0 0}
+.tab.active{background:#fff}
+.layout{display:grid;grid-template-columns:285px 1fr;gap:18px}
+.controls{border:1px solid #aaa;border-radius:7px;padding:14px;background:#fafafa}
+.controls h3{font-size:16px;margin:0 0 10px}
+.group{border-top:1px solid #ddd;padding-top:10px;margin-top:10px}
+label{display:block;font-size:13px;margin:8px 0 4px}
+input[type=range]{width:100%}
+input[type=number]{width:82px;padding:4px}
+select,button{font:inherit}
+select{width:100%;padding:6px}
+button{padding:6px 10px;border:1px solid #888;background:#fff;border-radius:5px;cursor:pointer}
+button:hover{background:#eee}
+.value{float:right;font-weight:700}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.status{font-size:12px;color:#555;margin-top:8px}
+.reality{display:flex;gap:6px}
+.reality button{flex:1}
+.reality button.active{background:#222;color:#fff}
+.main{min-width:0}
+.card{border:1px solid #aaa;border-radius:7px;padding:10px;margin-bottom:12px}
+.card h3{font-size:15px;margin:0 0 5px}
+svg{width:100%;height:auto;display:block;background:#fff}
+.stats{display:flex;flex-wrap:wrap;gap:7px;margin-top:7px}
+.stat{border:1px solid #bbb;border-radius:5px;padding:6px 9px;font-size:12px;background:#fafafa}
+.stat b{font-size:13px}
+.legend{font-size:12px;margin-top:5px;display:flex;gap:16px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;border:1px solid #777}
+.green{background:#62b36b}.red{background:#d9534f}.blue{background:#4d79c7}.pink{background:#e69ab4}
+.note{font-size:12px;color:#555;line-height:1.45;margin-top:6px}
+.hidden{display:none}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<div class="wrap">
+<h1>Tests for a Mean — Repeated Sampling</h1>
+<div class="sub">Watch the same hypothesis test repeated over and over. The rejection rule stays fixed; the sample changes.</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">One-Sample Test for a Mean</button>
+  <button class="tab" onclick="switchTab(1)">Two-Sample Test for Means</button>
+</div>
+
+<div class="layout">
+<aside class="controls">
+  <div id="controlsOne">
+    <h3>One-sample test</h3>
+    <div class="group">
+      <label>Null mean μ₀ <span class="value" id="mu0v"></span></label>
+      <input id="mu0" type="range" min="50" max="150" step=".5" value="100">
+      <label>Alternative mean μ₁ <span class="value" id="mu1v"></span></label>
+      <input id="mu1" type="range" min="50" max="150" step=".5" value="110">
+      <label>Population σ <span class="value" id="sigv"></span></label>
+      <input id="sig" type="range" min="2" max="25" step=".5" value="10">
+      <label>Sample size n <span class="value" id="nv"></span></label>
+      <input id="n" type="range" min="2" max="100" step="1" value="25">
+    </div>
+    <div class="group">
+      <label>σ condition</label>
+      <select id="known">
+        <option value="known">σ known → Z test</option>
+        <option value="unknown">σ unknown → t test</option>
+      </select>
+      <label>Alternative</label>
+      <select id="tail">
+        <option value="two">Two-sided</option>
+        <option value="right">Right-tailed</option>
+        <option value="left">Left-tailed</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="controlsTwo" class="hidden">
+    <h3>Two-sample test</h3>
+    <div class="group">
+      <label>Null difference Δ₀ <span class="value" id="d0v"></span></label>
+      <input id="d0" type="range" min="-30" max="30" step=".5" value="0">
+      <label>Population mean μ₁ <span class="value" id="m1v"></span></label>
+      <input id="m1" type="range" min="50" max="150" step=".5" value="105">
+      <label>Population mean μ₂ <span class="value" id="m2v"></span></label>
+      <input id="m2" type="range" min="50" max="150" step=".5" value="100">
+      <label>Population σ₁ <span class="value" id="s1v"></span></label>
+      <input id="s1" type="range" min="2" max="25" step=".5" value="10">
+      <label>Population σ₂ <span class="value" id="s2v"></span></label>
+      <input id="s2" type="range" min="2" max="25" step=".5" value="10">
+      <label>Sample size n₁ <span class="value" id="n1v"></span></label>
+      <input id="n1" type="range" min="2" max="100" step="1" value="25">
+      <label>Sample size n₂ <span class="value" id="n2v"></span></label>
+      <input id="n2" type="range" min="2" max="100" step="1" value="25">
+    </div>
+    <div class="group">
+      <label>σ condition</label>
+      <select id="known2">
+        <option value="known">σ₁, σ₂ known → Z test</option>
+        <option value="unknown">σ₁, σ₂ unknown → Welch t test</option>
+      </select>
+      <label>Alternative</label>
+      <select id="tail2">
+        <option value="two">Two-sided</option>
+        <option value="right">Right-tailed</option>
+        <option value="left">Left-tailed</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="group">
+    <label>Display confidence intervals</label>
+    <select id="showCI">
+      <option value="no">Do not display CIs</option>
+      <option value="yes">Display appropriate CIs</option>
+    </select>
+    <div class="status">Two-sided test → two-sided CI; one-sided test → matching one-sided CI.</div>
+  </div>
+
+  <div class="group">
+    <label>Reality</label>
+    <div class="reality">
+      <button id="trueBtn" class="active" onclick="setReality(true)">H₀ TRUE</button>
+      <button id="falseBtn" onclick="setReality(false)">H₀ FALSE</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <label>α <span class="value" id="alphav">0.05</span></label>
+    <input id="alpha" type="range" min=".01" max=".10" step=".01" value=".05">
+  </div>
+
+  <div class="actions">
+    <button onclick="startRun()">Start Sampling</button>
+    <button onclick="pauseRun()">Pause</button>
+    <button onclick="resumeRun()">Resume</button>
+    <button onclick="stopRun()">Stop</button>
+    <button onclick="clearRun()">Clear</button>
+  </div>
+  <div class="status" id="status">Ready.</div>
+</aside>
+
+<main class="main">
+  <div class="card">
+    <h3 id="topTitle">H₀ and H₁ sampling distributions</h3>
+    <svg id="top" viewBox="0 0 1000 300"></svg>
+    <div class="stats" id="topStats"></div>
+    <div class="legend">
+      <span><i class="dot green"></i>H₀ true: do not reject H₀</span>
+      <span><i class="dot red"></i>H₀ true: reject H₀ (Type I error)</span>
+      <span><i class="dot blue"></i>H₀ false: reject H₀ (power)</span>
+      <span><i class="dot pink"></i>H₀ false: do not reject H₀ (Type II error)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 id="sampleTitle">Repeated samples — watch the decision change</h3>
+    <svg id="bottom" viewBox="0 0 1000 350"></svg>
+    <div class="stats" id="runStats"></div>
+    <div class="note">Each dot is one independently generated test statistic on the sampling distribution scale. Its colour records only the decision made by the fixed rejection rule.</div>
+  </div>
+</main>
+</div>
+</div>
+
+<script>
+let tab=0, reality=true, running=false, paused=false, timer=null;
+let runs=[[],[]]; let counts=[{rej:0,total:0},{rej:0,total:0}];
+
+const $=id=>document.getElementById(id);
+function val(id){return +$(id).value}
+function fmt(x,d=2){return Number(x).toFixed(d)}
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let t=1/(1+.3275911*x);let a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429;
+return s*(1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x))}
+function Phi(x){return .5*(1+erf(x/Math.SQRT2))}
+function normalPDF(x,m,s){let z=(x-m)/s;return Math.exp(-z*z/2)/(s*Math.sqrt(2*Math.PI))}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function sampleNormal(m,s,n){let a=[];for(let i=0;i<n;i++)a.push(m+s*randn());return a}
+function mean(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function sd(a){let m=mean(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1))}
+function invNorm(p){ // Acklam approximation
+ let a=[-39.6968302866538,220.946098424521,-275.928510446969,138.357751867269,-30.6647980661472,2.50662827745924],
+ b=[-54.4760987982241,161.585836858041,-155.698979859887,66.8013118877197,-13.2806815528857],
+ c=[-.00778489400243029,-.322396458041136,-2.40075827716184,-2.54973253934373,4.37466414146497,2.93816398269878],
+ d=[.00778469570904146,.32246712907004,2.445134137143,3.75440866190742];
+ let pl=.02425,ph=1-pl,q,r;
+ if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+ if(p>ph){q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+ q=p-.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)
+}
+function chi2CDF(x,k){
+ if(x<=0)return 0;
+ // regularized gamma by series/continued fraction
+ let a=k/2,z=x/2;
+ function lgamma(z){let c=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];if(z<.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-lgamma(1-z);z-=1;let x=0.99999999999980993;for(let i=0;i<c.length;i++)x+=c[i]/(z+i+1);let t=z+c.length-.5;return .5*Math.log(2*Math.PI)+(z+.5)*Math.log(t)-t+Math.log(x)}
+ if(z<a){let sum=1/a,term=sum;for(let n=1;n<100;n++){term*=z/(a+n);sum+=term;if(Math.abs(term)<1e-12*sum)break}return Math.exp(-z+a*Math.log(z)-lgamma(a))*sum}
+ let b=z+1-a,c=1e-30,d=1/b,h=d;
+ for(let i=1;i<200;i++){let an=-i*(i-a);b+=2;d=an*d+b;if(Math.abs(d)<1e-30)d=1e-30;c=b+an/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<1e-10)break}
+ return 1-Math.exp(-z+a*Math.log(z)-lgamma(a))*h
+}
+function lgamma2(z){
+ let c=[676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];
+ if(z<.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-lgamma2(1-z);
+ z-=1;let x=.99999999999980993;
+ for(let i=0;i<c.length;i++)x+=c[i]/(z+i+1);
+ let tt=z+c.length-.5;
+ return .5*Math.log(2*Math.PI)+(z+.5)*Math.log(tt)-tt+Math.log(x);
+}
+function tCDF(t,df){
+ if(t===0)return .5;
+ let sign=t<0?-1:1,x=Math.abs(t),N=700,h=x/N,sum=0;
+ function pdf(q){
+   return Math.exp(lgamma2((df+1)/2)-lgamma2(df/2)-.5*Math.log(df*Math.PI)
+     -((df+1)/2)*Math.log(1+q*q/df));
+ }
+ for(let i=0;i<=N;i++){
+   let q=i*h,w=(i===0||i===N)?1:(i%2?4:2);sum+=w*pdf(q);
+ }
+ let area=sum*h/3;
+ return .5+sign*(area-.5);
+}
+function tCrit(p,df){let lo=-10,hi=10;for(let i=0;i<70;i++){let m=(lo+hi)/2;if(tCDF(m,df)<p)lo=m;else hi=m}return (lo+hi)/2}
+function critical(alpha,tail,known,df){
+ if(known){let z=invNorm(tail==='two'?1-alpha/2:1-alpha);return tail==='left'?-z:z}
+ let p=tail==='two'?1-alpha/2:1-alpha;return tail==='left'?-tCrit(p,df):tCrit(p,df)
+}
+function reject(stat,crit,tail){return tail==='two'?Math.abs(stat)>crit:tail==='right'?stat>crit:stat<crit}
+
+function getParams(){
+ if(tab===0)return {mu0:val('mu0'),mu1:val('mu1'),sig:val('sig'),n:val('n'),known:$('known').value==='known',tail:$('tail').value,alpha:val('alpha')};
+ return {d0:val('d0'),m1:val('m1'),m2:val('m2'),s1:val('s1'),s2:val('s2'),n1:val('n1'),n2:val('n2'),known:$('known2').value==='known',tail:$('tail2').value,alpha:val('alpha')};
+}
+function theory(p){
+ if(tab===0){
+   let se=p.sig/Math.sqrt(p.n),df=p.n-1, crit=critical(p.alpha,p.tail,p.known,df);
+   let H0m=p.mu0,H1m=p.mu1, ss=se;
+   let beta;
+   if(p.tail==='two') beta=Phi((H0m+crit*ss-H1m)/ss)-Phi((H0m-crit*ss-H1m)/ss);
+   else if(p.tail==='right') beta=Phi((H0m+crit*ss-H1m)/ss);
+   else beta=1-Phi((H0m-crit*ss-H1m)/ss);
+   return {H0m,H1m,ss,crit,beta,power:1-beta,df,se};
+ }else{
+   let se=Math.sqrt(p.s1*p.s1/p.n1+p.s2*p.s2/p.n2),df;
+   if(p.known)df=Infinity;else{
+     let a=p.s1*p.s1/p.n1,b=p.s2*p.s2/p.n2;
+     df=(a+b)*(a+b)/(a*a/(p.n1-1)+b*b/(p.n2-1));
+   }
+   let crit=critical(p.alpha,p.tail,p.known,df);
+   let H0m=p.d0,H1m=p.m1-p.m2,ss=se,beta;
+   if(p.tail==='two') beta=Phi((H0m+crit*ss-H1m)/ss)-Phi((H0m-crit*ss-H1m)/ss);
+   else if(p.tail==='right') beta=Phi((H0m+crit*ss-H1m)/ss);
+   else beta=1-Phi((H0m-crit*ss-H1m)/ss);
+   return {H0m,H1m,ss,crit,beta,power:1-beta,df,se};
+ }
+}
+function svgText(s,x,y,t,size=13,weight='normal',anchor='start'){s.push(`<text x="${x}" y="${y}" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" fill="#222">${t}</text>`)}
+function pathCurve(fn,xmin,xmax,X,Y,W,H, ymax){
+ let pts=[];for(let i=0;i<=220;i++){let x=xmin+(xmax-xmin)*i/220,y=fn(x);let px=X+(x-xmin)/(xmax-xmin)*W,py=Y+H-y/ymax*H;pts.push((i?'L':'M')+px.toFixed(1)+','+py.toFixed(1))}return pts.join(' ')
+}
+function drawTop(){
+ let p=getParams(),t=theory(p),s=[],W=1000,H=300,X=70,Y=35,PW=875,PH=205;
+ s.push(`<rect x="0" y="0" width="1000" height="300" fill="white"/>`);
+ let lo=Math.min(t.H0m,t.H1m)-4*t.ss,hi=Math.max(t.H0m,t.H1m)+4*t.ss;
+ if(!isFinite(lo)||!isFinite(hi)||hi<=lo){lo=-5;hi=5}
+ let ymax=1/(t.ss*Math.sqrt(2*Math.PI));
+ // reference curves
+ s.push(`<path d="${pathCurve(x=>normalPDF(x,t.H0m,t.ss),lo,hi,X,Y,PW,PH,ymax*1.12)}" fill="none" stroke="#222" stroke-width="2"/>`);
+ s.push(`<path d="${pathCurve(x=>normalPDF(x,t.H1m,t.ss),lo,hi,X,Y,PW,PH,ymax*1.12)}" fill="none" stroke="#777" stroke-width="2" stroke-dasharray="7 5"/>`);
+ // axes
+ s.push(`<line x1="${X}" y1="${Y+PH}" x2="${X+PW}" y2="${Y+PH}" stroke="#555"/>`);
+ s.push(`<line x1="${X}" y1="${Y}" x2="${X}" y2="${Y+PH}" stroke="#555"/>`);
+ let rejLo=-Infinity,rejHi=Infinity;
+ // Critical value is signed for one-tailed tests:
+ // right tail: +c, left tail: -c.
+ // Therefore the estimator-scale boundary is always H0 + critical × SE.
+ if(p.tail==='two'){
+   let c=Math.abs(t.crit)*t.ss;
+   rejLo=t.H0m-c;
+   rejHi=t.H0m+c;
+ } else if(p.tail==='right'){
+   rejLo=t.H0m+t.crit*t.ss;
+ } else {
+   rejHi=t.H0m+t.crit*t.ss;
+ }
+ function shade(a,b,color){
+   let aa=Math.max(lo,a),bb=Math.min(hi,b);
+   if(bb<=aa)return;
+   let pts=[];
+   let steps=80;
+   for(let i=0;i<=steps;i++){
+     let x=aa+(bb-aa)*i/steps;
+     let y=normalPDF(x,t.H0m,t.ss);
+     let px=X+(x-lo)/(hi-lo)*PW;
+     let py=Y+PH-y/ymax*PH;
+     pts.push((i===0?'M':'L')+px.toFixed(2)+','+py.toFixed(2));
+   }
+   let xRight=X+(bb-lo)/(hi-lo)*PW;
+   let xLeft=X+(aa-lo)/(hi-lo)*PW;
+   s.push(`<path d="${pts.join(' ')} L ${xRight.toFixed(2)},${(Y+PH).toFixed(2)} L ${xLeft.toFixed(2)},${(Y+PH).toFixed(2)} Z"
+            fill="${color}" opacity=".16" stroke="none"/>`);
+ }
+ if(p.tail==='two'){shade(lo,rejLo,'#d9534f');shade(rejHi,hi,'#d9534f')}
+ else if(p.tail==='right')shade(rejLo,hi,'#d9534f'); else shade(lo,rejHi,'#d9534f');
+ // H0 center and H1 center
+ for(let [m,lab,stroke] of [[t.H0m,'H₀', '#222'],[t.H1m,'H₁','#777']]){
+   let x=X+(m-lo)/(hi-lo)*PW;s.push(`<line x1="${x}" y1="${Y+PH}" x2="${x}" y2="${Y+PH-22}" stroke="${stroke}" stroke-width="2"/>`);
+   svgText(s,x,Y+PH+39,lab,13,'bold','middle');
+ }
+ if(p.tail==='two'){for(let q of [rejLo,rejHi]){let x=X+(q-lo)/(hi-lo)*PW;s.push(`<line x1="${x}" y1="${Y}" x2="${x}" y2="${Y+PH}" stroke="#d9534f" stroke-dasharray="5 4"/>`)}}
+ else {let q=p.tail==='right'?rejLo:rejHi,x=X+(q-lo)/(hi-lo)*PW;s.push(`<line x1="${x}" y1="${Y}" x2="${x}" y2="${Y+PH}" stroke="#d9534f" stroke-dasharray="5 4"/>`)}
+ svgText(s,X,Y-8,`Rejection rule: α = ${fmt(p.alpha,2)} · ${p.tail==='two'?'two-sided':p.tail==='right'?'right-tailed':'left-tailed'}`,13,'bold');
+ svgText(s,X+PW/2,Y+PH+63,tab===0?`H₀: μ = ${fmt(p.mu0,1)}     H₁: μ = ${fmt(p.mu1,1)}`:`H₀: Δ = ${fmt(p.d0,1)}     H₁: Δ = ${fmt(p.m1-p.m2,1)}`,12,'normal','middle');
+ $('top').innerHTML=s.join('');
+ let eff=tab===0?(p.mu1-p.mu0)/p.sig:(p.m1-p.m2-p.d0)/Math.sqrt((p.s1*p.s1+p.s2*p.s2)/2);
+ $('topStats').innerHTML=`<div class="stat">Test: <b>${p.known?(tab===0?'Z':'Z'):(tab===0?'t':'Welch t')}</b></div>
+ <div class="stat">SE: <b>${fmt(t.se)}</b></div>
+ <div class="stat">Critical value: <b>${fmt(t.crit)}</b></div>
+ <div class="stat">Effect size: <b>${fmt(eff)}</b></div>
+ <div class="stat">Theoretical β: <b>${(100*t.beta).toFixed(1)}%</b></div>
+ <div class="stat">Theoretical power: <b>${(100*t.power).toFixed(1)}%</b></div>`;
+}
+function drawBottom(){
+ let p=getParams(),t=theory(p),s=[],W=1000,H=350,X=70,Y=35,PW=875,PH=245;
+ s.push(`<rect x="0" y="0" width="1000" height="350" fill="white"/>`);
+
+ // The bottom panel deliberately follows the Alpha/Beta/Power architecture:
+ // the newest observation is at the top, older observations move downward,
+ // and only the most recent 20 observations remain visible.
+ let lo=Math.min(t.H0m,t.H1m)-4.2*t.ss;
+ let hi=Math.max(t.H0m,t.H1m)+4.2*t.ss;
+ if(hi<=lo){lo=t.H0m-10;hi=t.H0m+10}
+ function px(x){return X+(x-lo)/(hi-lo)*PW}
+
+ // Rejection boundaries are fixed by H0 and alpha.
+ let critLo=-Infinity,critHi=Infinity;
+ if(p.tail==='two'){
+   critLo=t.H0m-t.crit*t.ss;
+   critHi=t.H0m+t.crit*t.ss;
+ }else if(p.tail==='right'){
+   critLo=t.H0m+t.crit*t.ss;
+ }else{
+   critHi=t.H0m-t.crit*t.ss;
+ }
+
+ // Fixed vertical reference lines.
+ if(p.tail==='two'){
+   for(let q of [critLo,critHi])
+     s.push(`<line x1="${px(q)}" y1="${Y}" x2="${px(q)}" y2="${Y+PH}"
+              stroke="#d9534f" stroke-width="2" stroke-dasharray="6 4"/>`);
+ }else{
+   let q=p.tail==='right'?critLo:critHi;
+   s.push(`<line x1="${px(q)}" y1="${Y}" x2="${px(q)}" y2="${Y+PH}"
+            stroke="#d9534f" stroke-width="2" stroke-dasharray="6 4"/>`);
+ }
+
+ // True/null value and alternative/reference mean.
+ s.push(`<line x1="${px(t.H0m)}" y1="${Y}" x2="${px(t.H0m)}" y2="${Y+PH}"
+          stroke="#222" stroke-width="2"/>`);
+ s.push(`<line x1="${px(t.H1m)}" y1="${Y}" x2="${px(t.H1m)}" y2="${Y+PH}"
+          stroke="#777" stroke-width="2" stroke-dasharray="3 5"/>`);
+
+ svgText(s,px(t.H0m),Y-11,'H₀',12,'bold','middle');
+ svgText(s,px(t.H1m),Y-11,'H₁',12,'normal','middle');
+
+ // Most recent 20 observations, newest at the top.
+ // Each row contains the actual observed estimate and, optionally, its CI.
+ let arr=runs[tab], visible=arr.slice(-20);
+ let rowGap=11.0;
+ let base=Y+12;
+ let showCI=$('showCI').value==='yes';
+
+ visible.forEach((d,i)=>{
+   let yy=base+i*rowGap;
+
+   let colour;
+   if(reality) colour=d.rej?'#d9534f':'#62b36b';
+   else colour=d.rej?'#4d79c7':'#e69ab4';
+
+   if(showCI){
+     // Draw the CI independently of the point:
+     //   two-sided: [estimate - c*SE, estimate + c*SE]
+     //   right-tailed: [estimate - c*SE, +infinity)
+     //   left-tailed: (-infinity, estimate + c*SE]
+     //
+     // The dot is the observed estimate; the endpoint for a one-sided
+     // interval is therefore NOT the dot itself.
+     let margin=Math.abs(d.ciCrit)*d.se;
+
+     if(p.tail==='two'){
+       let L=d.value-margin;
+       let U=d.value+margin;
+       let xL=px(Math.max(lo,L));
+       let xU=px(Math.min(hi,U));
+
+       s.push(`<line x1="${xL}" y1="${yy}" x2="${xU}" y2="${yy}"
+                stroke="${colour}" stroke-width="2.4" stroke-linecap="round"/>`);
+       s.push(`<line x1="${xL}" y1="${yy-5}" x2="${xL}" y2="${yy+5}"
+                stroke="${colour}" stroke-width="1.6"/>`);
+       s.push(`<line x1="${xU}" y1="${yy-5}" x2="${xU}" y2="${yy+5}"
+                stroke="${colour}" stroke-width="1.6"/>`);
+
+     }else if(p.tail==='right'){
+       let L=d.value-margin;
+       let xL=px(Math.max(lo,L));
+       let xR=px(hi);
+
+       s.push(`<line x1="${xL}" y1="${yy}" x2="${xR}" y2="${yy}"
+                stroke="${colour}" stroke-width="2.4" stroke-linecap="round"/>`);
+       s.push(`<line x1="${xL}" y1="${yy-5}" x2="${xL}" y2="${yy+5}"
+                stroke="${colour}" stroke-width="1.6"/>`);
+       // +infinity arrow
+       s.push(`<path d="M ${xR-9} ${yy-5} L ${xR} ${yy} L ${xR-9} ${yy+5}"
+                fill="none" stroke="${colour}" stroke-width="1.7"/>`);
+
+     }else{
+       // LEFT-tailed test: the one-sided CI is
+       // (-infinity, x-bar + margin of error].
+       // critical() stores the left-tail critical value as a negative
+       // number, so using d.ciCrit directly here would incorrectly give
+       // x-bar - margin. Use the positive margin explicitly.
+       let U=d.value+margin;
+       let xL=px(lo);
+       let xU=px(Math.min(hi,U));
+
+       // The entire visible segment from -infinity to U.
+       s.push(`<line x1="${xL}" y1="${yy}" x2="${xU}" y2="${yy}"
+                stroke="${colour}" stroke-width="2.4" stroke-linecap="round"/>`);
+       // Finite upper endpoint
+       s.push(`<line x1="${xU}" y1="${yy-5}" x2="${xU}" y2="${yy+5}"
+                stroke="${colour}" stroke-width="1.6"/>`);
+       // -infinity arrow: this is the important visual distinction
+       s.push(`<path d="M ${xL+9} ${yy-5} L ${xL} ${yy} L ${xL+9} ${yy+5}"
+                fill="none" stroke="${colour}" stroke-width="1.7"/>`);
+     }
+   }
+
+   // Actual observed sample mean / mean difference.
+   s.push(`<circle cx="${px(d.value)}" cy="${yy}" r="4.4"
+            fill="${colour}" stroke="#444" stroke-width=".8"/>`);
+ });
+
+ s.push(`<line x1="${X}" y1="${Y+PH}" x2="${X+PW}" y2="${Y+PH}" stroke="#555"/>`);
+
+ svgText(s,X,Y+PH+18,
+   tab===0 ? 'Sample means  x̄' : 'Differences in sample means  x̄₁ − x̄₂',
+   12,'normal');
+ if(showCI){
+   let ciLabel = p.tail==='two' ? 'Two-sided CI'
+                : p.tail==='right' ? 'One-sided CI: lower bound to +∞'
+                : 'One-sided CI: −∞ to upper bound';
+   svgText(s,X+PW,Y+PH+18,ciLabel,10,'normal','end');
+ }
+
+ // A small explanation at the left of the rows.
+ svgText(s,X,Y+PH+38,
+   'Newest sample',
+   10,'normal');
+ svgText(s,X+PW,Y+PH+38,
+   'Older samples move downward — maximum 20 shown',
+   10,'normal','end');
+
+ for(let i=0;i<=6;i++){
+   let q=lo+(hi-lo)*i/6,x=px(q);
+   s.push(`<line x1="${x}" y1="${Y+PH}" x2="${x}" y2="${Y+PH+5}" stroke="#555"/>`);
+   svgText(s,x,Y+PH+32,fmt(q,1),9,'normal','middle');
+ }
+
+ let total=counts[tab].total,rej=counts[tab].rej;
+ let correct=reality?total-rej:rej;
+
+ $('runStats').innerHTML=
+   `<div class="stat">Samples: <b>${total}</b></div>
+    <div class="stat">Reject H₀: <b>${rej}</b></div>
+    <div class="stat">Do not reject H₀: <b>${total-rej}</b></div>
+    <div class="stat">${reality?'Observed α (rejection rate)':'Observed power (rejection rate)'}:
+      <b>${total?(100*rej/total).toFixed(1):'—'}%</b></div>
+    <div class="stat">${reality?'Observed correct rate':'Observed β'}:
+      <b>${total?(100*correct/total).toFixed(1):'—'}%</b></div>`;
+
+ $('bottom').innerHTML=s.join('');
+}
+function generate(){
+ let p=getParams(),t=theory(p),stat,value,se,ciCrit;
+
+ if(tab===0){
+   let m=reality?p.mu0:p.mu1;
+   let a=sampleNormal(m,p.sig,p.n),xb=mean(a);
+   value=xb;
+   se=p.known ? p.sig/Math.sqrt(p.n) : sd(a)/Math.sqrt(p.n);
+   stat=(xb-p.mu0)/se;
+   ciCrit=critical(p.alpha,p.tail,p.known,p.n-1);
+ }else{
+   let m1=p.m1,m2=p.m2;
+
+   // In the H₀-true world, generate data satisfying the null difference.
+   if(reality && Math.abs((p.m1-p.m2)-p.d0)>1e-9){
+     m2=m1-p.d0;
+   }
+
+   let a=sampleNormal(m1,p.s1,p.n1);
+   let b=sampleNormal(m2,p.s2,p.n2);
+   let D=mean(a)-mean(b);
+   value=D;
+
+   se=p.known
+      ? Math.sqrt(p.s1*p.s1/p.n1+p.s2*p.s2/p.n2)
+      : Math.sqrt(sd(a)**2/p.n1+sd(b)**2/p.n2);
+
+   stat=(D-p.d0)/se;
+
+   let df;
+   if(p.known) df=Infinity;
+   else{
+     let aa=sd(a)**2/p.n1,bb=sd(b)**2/p.n2;
+     df=(aa+bb)*(aa+bb)/(aa*aa/(p.n1-1)+bb*bb/(p.n2-1));
+   }
+   ciCrit=critical(p.alpha,p.tail,p.known,df);
+ }
+
+ let rej=reject(stat,t.crit,p.tail);
+ runs[tab].push({stat:stat,value:value,se:se,ciCrit:ciCrit,rej:rej});
+ counts[tab].total++;
+ if(rej)counts[tab].rej++;
+
+ drawTop();
+ drawBottom();
+}
+function startRun(){clearRun();running=true;paused=false;$('status').textContent='Sampling…';generate();timer=setInterval(()=>{if(running&&!paused)generate()},850)}
+function pauseRun(){if(running){paused=true;$('status').textContent='Paused.'}}
+function resumeRun(){if(running){paused=false;$('status').textContent='Sampling…'}}
+function stopRun(){running=false;paused=false;if(timer){clearInterval(timer);timer=null}$('status').textContent='Stopped. This run is frozen.'}
+function clearRun(){runs[tab]=[];counts[tab]={rej:0,total:0};drawBottom();$('status').textContent='Ready.'}
+function setReality(r){reality=r;$('trueBtn').classList.toggle('active',r);$('falseBtn').classList.toggle('active',!r);drawTop();drawBottom()}
+function switchTab(i){stopRun();tab=i;document.querySelectorAll('.tab').forEach((x,j)=>x.classList.toggle('active',j===i));$('controlsOne').classList.toggle('hidden',i!==0);$('controlsTwo').classList.toggle('hidden',i!==1);drawTop();drawBottom()}
+function updateLabels(){
+ ['mu0','mu1','sig','n','d0','m1','m2','s1','s2','n1','n2'].forEach(id=>{if($(id))$(id+'v').textContent=$(id).value})
+ $('alphav').textContent=val('alpha').toFixed(2);
+}
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{updateLabels();drawTop();drawBottom()}));
+updateLabels();drawTop();drawBottom();
+</script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poisson Distribution </title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1100px;margin:24px auto;padding:0 18px;color:#222;background:#fff}
+h1{margin:0 0 5px}.subtitle{color:#666;margin-bottom:20px}
+.section{border:1px solid #ddd;border-radius:14px;padding:17px;margin:15px 0}
+.controls{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card{border:1px solid #ddd;border-radius:11px;padding:13px;background:#fafafa}
+label{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:8px}input{width:100%;accent-color:#3267a8}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+.stat{text-align:center;border:1px solid #ddd;border-radius:11px;padding:10px}
+.k{font-size:18px;color:#444;font-weight:600}.v{font-size:23px;font-weight:bold;margin-top:4px}
+.formula{text-align:center;background:#f3f6fa;padding:14px;border-radius:9px;margin:13px 0;font-size:24px;line-height:1.35}
+.formula math{font-size:1.25em}
+svg{width:100%;height:auto;border:1px solid #eee;border-radius:10px}
+.note{font-size:13px;color:#666;margin-top:8px}
+button{border:1px solid #bbb;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;margin:4px 4px 4px 0}
+button:hover{background:#f0f4f8}
+details{margin-top:10px}.aha{background:#fff8df;border-left:5px solid #d59b00;padding:12px;border-radius:8px}
+.prompt{font-weight:bold;font-size:17px;margin-bottom:7px}.answer{margin-top:8px;color:#444}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.compare .card{background:#f8fafc}
+table{border-collapse:collapse;width:100%;margin-top:12px}td,th{border:1px solid #ddd;padding:8px;text-align:center}
+th{background:#f5f5f5}
+@media(max-width:800px){.controls,.stats,.two,.compare{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.controls,.stats,.two,.compare{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+
+<h1>Poisson Distribution </h1>
+<div class="subtitle">Explore a distribution for counting events — and discover why its mean and variance are both λ.</div>
+
+<div class="section">
+  <div class="controls">
+    <div class="card">
+      <label>Expected number of events, λ <span id="lambdaVal">3.00</span></label>
+      <input id="lambda" type="range" min="0.10" max="20" step="0.10" value="3">
+   </div>
+    <div class="card">
+      <label>Selected number of events, r <span id="rVal">3</span></label>
+      <input id="r" type="range" min="0" max="20" step="1" value="3">
+   </div>
+ </div>
+
+  <div class="stats">
+    <div class="stat"><div class="k">Mean = λ</div><div class="v" id="meanVal">3.00</div></div>
+    <div class="stat"><div class="k">Variance = λ</div><div class="v" id="varVal">3.00</div></div>
+    <div class="stat"><div class="k">SD = √λ</div><div class="v" id="sdVal">1.73</div></div>
+    <div class="stat"><div class="k">P(X = r)</div><div class="v" id="prVal">0.2240</div></div>
+    <div class="stat"><div class="k">r</div><div class="v" id="rStat">3</div></div>
+ </div>
+
+  <div class="formula">
+    <math display="block">
+      <mi>P</mi><mo>(</mo><mi>X</mi><mo>=</mo><mi>r</mi><mo>)</mo>
+      <mo>=</mo>
+      <mfrac>
+        <mrow><msup><mi>e</mi><mrow><mo>−</mo><mi>λ</mi></mrow></msup><msup><mi>λ</mi><mi>r</mi></msup></mrow>
+        <mrow><mi>r</mi><mo>!</mo></mrow>
+     </mfrac>
+   </math>
+ </div>
+
+  <svg id="chart" viewBox="0 0 950 390" aria-label="Poisson probability mass function"></svg>
+  <div class="note">Blue = selected r. Dashed line = mean λ. Hover over a bar for its probability.</div>
+</div>
+
+<div class="section">
+<h2>Explore — don't calculate first</h2>
+<div class="two">
+
+<div class="aha">
+<div class="prompt">1. What happens when λ increases?</div>
+<button type="button" data-lambda="1">λ = 1</button>
+<button type="button" data-lambda="3">λ = 3</button>
+<button type="button" data-lambda="10">λ = 10</button>
+<div class="answer">Watch where the distribution moves and how its spread changes.</div>
+</div>
+
+<div class="aha">
+<div class="prompt">2. What happens to mean and variance?</div>
+<button type="button" data-lambda="2">λ = 2</button>
+<button type="button" data-lambda="6">λ = 6</button>
+<button type="button" data-lambda="12">λ = 12</button>
+<div class="answer">Look at the two numbers. What relationship do you notice?</div>
+</div>
+
+<div class="aha">
+<div class="prompt">3. What happens to the shape?</div>
+<button type="button" data-lambda="0.5">λ = 0.5</button>
+<button type="button" data-lambda="2">λ = 2</button>
+<button type="button" data-lambda="8">λ = 8</button>
+<div class="answer">Small λ gives a strongly right-skewed distribution. Larger λ becomes more symmetric.</div>
+</div>
+
+<div class="aha">
+<div class="prompt">4. Can the mean be impossible?</div>
+<button type="button" data-lambda="2.5">λ = 2.5</button>
+<button type="button" data-lambda="4.7">λ = 4.7</button>
+<div class="answer">Can you have exactly 2.5 events? Yet the mean is 2.5. What does that tell us about a mean?</div>
+</div>
+
+</div>
+</div>
+
+<div class="section">
+<h2>Why does Poisson appear?</h2>
+
+<details>
+<summary><b>Start with a binomial story</b></summary>
+<p>Suppose there are many opportunities for an event to occur. Each opportunity has a small probability of success.</p>
+<p>That is a binomial setting:</p>
+<div class="formula">
+<math display="block">
+<mi>X</mi><mo>∼</mo><mtext>Binomial</mtext><mo>(</mo><mi>n</mi><mo>,</mo><mi>p</mi><mo>)</mo>
+</math>
+</div>
+</details>
+
+<details>
+<summary><b>Now make the event rare, but increase the number of opportunities</b></summary>
+<p>Let</p>
+<div class="formula">
+<math display="block">
+<mi>n</mi><mo>→</mo><mi>large</mi><mo>,</mo>
+<mo>&nbsp;</mo><mi>p</mi><mo>→</mo><mn>0</mn><mo>,</mo>
+<mo>&nbsp;</mo><mi>np</mi><mo>=</mo><mi>λ</mi>
+</math>
+</div>
+<p>The expected number of events stays fixed at λ.</p>
+</details>
+
+<details>
+<summary><b>Then the binomial approaches Poisson</b></summary>
+<p>The Poisson distribution is the limiting form of the binomial distribution in this rare-event limit:</p>
+<div class="formula">
+<math display="block">
+<mtext>Binomial</mtext><mo>(</mo><mi>n</mi><mo>,</mo><mi>p</mi><mo>)</mo>
+<mo>→</mo>
+<mtext>Poisson</mtext><mo>(</mo><mi>λ</mi><mo>)</mo>
+</math>
+</div>
+</details>
+
+<div class="aha" style="margin-top:12px">
+<b>Aha:</b> Poisson is not an unrelated distribution. It emerges naturally when we count <b>rare events occurring among many opportunities</b>, while the expected number of events stays fixed.
+</div>
+</div>
+
+<div class="section">
+<h2>See the Binomial → Poisson connection</h2>
+<div class="compare">
+<div class="card">
+<label>Binomial n <span id="bnVal">10</span></label>
+<input id="bn" type="range" min="10" max="2000" step="10" value="10">
+<label style="margin-top:12px">Binomial p <span id="bpVal">0.1000</span></label>
+<input id="bp" type="range" min="0.0005" max="0.5" step="0.0005" value="0.1">
+</div>
+<div class="card">
+<div class="k">λ = np</div><div class="v" id="bLambda">1.0000</div>
+<p>Compare this binomial distribution with a Poisson distribution having the same λ.</p>
+</div>
+</div>
+<svg id="compareChart" viewBox="0 0 950 390" aria-label="Binomial and Poisson comparison"></svg>
+<div class="note">The comparison shows how the binomial approaches Poisson as n becomes large and p becomes small while np remains approximately constant.</div>
+</div>
+
+<div class="section">
+<h2>Questions to investigate</h2>
+<ol>
+<li>Find a λ for which the mean is not an integer. Can the mean itself be an outcome?</li>
+<li>Compare λ = 1, 5 and 15. What happens to skewness?</li>
+<li>Why is the Poisson variance equal to λ? What does that imply about spread as the expected number of events increases?</li>
+<li>In the comparison section, try to keep np close to 1 while increasing n. How quickly does the binomial begin to resemble Poisson?</li>
+</ol>
+<button type="button" id="reset">Reset</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+function logFactorial(n){
+  let s=0;
+  for(let i=2;i<=n;i++) s+=Math.log(i);
+  return s;
+}
+function poissonPMF(lambda,k){
+  if(k<0) return 0;
+  return Math.exp(-lambda + k*Math.log(lambda) - logFactorial(k));
+}
+function binomialPMF(n,p,k){
+  if(k<0||k>n)return 0;
+  if(p<=0)return k===0?1:0;
+  if(p>=1)return k===n?1:0;
+  let logc=0;
+  for(let i=1;i<=k;i++) logc += Math.log(n-k+i)-Math.log(i);
+  return Math.exp(logc+k*Math.log(p)+(n-k)*Math.log1p(-p));
+}
+
+function drawAxes(W,H,L,R,T,B,maxP,label){
+  const pw=W-L-R,ph=H-T-B,yMax=maxP*1.18;
+  let s='';
+  for(let j=0;j<=4;j++){
+    const y=T+ph*j/4,val=yMax*(1-j/4);
+    s+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="#999" opacity=".18"/>`;
+    s+=`<text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#666">${val.toFixed(2)}</text>`;
+  }
+  s+=`<line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#555"/>`;
+  s+=`<text x="${(L+W-R)/2}" y="${H-12}" text-anchor="middle" font-size="13" fill="#555">${label}</text>`;
+  return s;
+}
+
+function renderPoisson(){
+  let lambda=+$("lambda").value;
+  let r=+$("r").value;
+  const maxR=Math.min(60,Math.max(12,Math.ceil(lambda+5*Math.sqrt(lambda)+6)));
+  $("r").max=maxR;
+  if(r>maxR){r=maxR;$("r").value=r;}
+  const mean=lambda,varx=lambda,sd=Math.sqrt(lambda),pr=poissonPMF(lambda,r);
+  $("lambdaVal").textContent=lambda.toFixed(2);
+  $("meanVal").textContent=mean.toFixed(2);
+  $("varVal").textContent=varx.toFixed(2);
+  $("sdVal").textContent=sd.toFixed(2);
+  $("prVal").textContent=pr.toFixed(4);
+  $("rVal").textContent=r;$("rStat").textContent=r;
+
+  const probs=Array.from({length:maxR+1},(_,k)=>poissonPMF(lambda,k));
+  const W=950,H=390,L=58,R=20,T=22,B=56,pw=W-L-R,ph=H-T-B;
+  const maxP=Math.max(...probs,.01),yMax=maxP*1.18,slot=pw/(maxR+1),barW=Math.max(3,slot*.72);
+  let s=drawAxes(W,H,L,R,T,B,maxP,"Number of events, X");
+  probs.forEach((v,k)=>{
+    const x=L+slot*(k+.5),h=v/yMax*ph,y=T+ph-h,sel=k===r;
+    s+=`<rect x="${x-barW/2}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${sel?'#3267a8':'#777'}" opacity="${sel?1:.55}"><title>X=${k}: P=${v.toFixed(5)}</title></rect>`;
+    if(maxR<=25 || k%Math.ceil(maxR/20)===0)
+      s+=`<text x="${x}" y="${H-B+17}" text-anchor="middle" font-size="11" fill="#555">${k}</text>`;
+  });
+  const mx=L+slot*(mean+.5);
+  s+=`<line x1="${mx}" y1="${T}" x2="${mx}" y2="${H-B}" stroke="#b24b35" stroke-width="2" stroke-dasharray="7 5"/>`;
+  s+=`<text x="${Math.min(mx+7,W-R-45)}" y="${T+14}" font-size="12" fill="#9b3f2d">mean λ</text>`;
+  $("chart").innerHTML=s;
+}
+
+function renderCompare(){
+  let n=+$("bn").value,p=+$("bp").value;
+  const lambda=n*p;
+  $("bnVal").textContent=n;$("bpVal").textContent=p.toFixed(4);$("bLambda").textContent=lambda.toFixed(4);
+
+  const maxK=Math.min(70,Math.max(12,Math.ceil(lambda+5*Math.sqrt(Math.max(lambda,.01))+6)));
+  const W=950,H=390,L=58,R=20,T=22,B=56,pw=W-L-R,ph=H-T-B,slot=pw/(maxK+1);
+  const bin=Array.from({length:maxK+1},(_,k)=>binomialPMF(n,p,k));
+  const poi=Array.from({length:maxK+1},(_,k)=>poissonPMF(lambda,k));
+  const maxP=Math.max(...bin,...poi,.01),yMax=maxP*1.18,barW=Math.max(2.5,slot*.34);
+  let s=drawAxes(W,H,L,R,T,B,maxP,"Number of events, X");
+  bin.forEach((v,k)=>{
+    const x=L+slot*(k+.5)-barW/2,h=v/yMax*ph,y=T+ph-h;
+    s+=`<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#3267a8" opacity=".55"><title>Binomial X=${k}: ${v.toFixed(5)}</title></rect>`;
+  });
+  poi.forEach((v,k)=>{
+    const x=L+slot*(k+.5)+barW/2,h=v/yMax*ph,y=T+ph-h;
+    s+=`<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#b24b35" opacity=".55"><title>Poisson X=${k}: ${v.toFixed(5)}</title></rect>`;
+  });
+  s+=`<text x="${W-R-175}" y="${T+14}" font-size="12" fill="#3267a8">■ Binomial</text>`;
+  s+=`<text x="${W-R-75}" y="${T+14}" font-size="12" fill="#b24b35">■ Poisson</text>`;
+  $("compareChart").innerHTML=s;
+}
+
+function resetAll(){
+  $("lambda").value=3;$("r").value=3;
+  $("bn").value=10;$("bp").value=.1;
+  renderPoisson();renderCompare();
+}
+$("lambda").addEventListener("input",renderPoisson);
+$("r").addEventListener("input",renderPoisson);
+$("bn").addEventListener("input",renderCompare);
+$("bp").addEventListener("input",renderCompare);
+document.querySelectorAll("[data-lambda]").forEach(b=>b.addEventListener("click",()=>{$("lambda").value=b.dataset.lambda;renderPoisson()}));
+$("reset").addEventListener("click",resetAll);
+renderPoisson();renderCompare();
+</script>
+</body>
+</html>

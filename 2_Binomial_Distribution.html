@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binomial Distribution Explorer</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1100px;margin:24px auto;padding:0 18px;color:#222;background:#fff}
+h1{margin:0 0 5px}.subtitle{color:#666;margin-bottom:20px}
+.section{border:1px solid #ddd;border-radius:14px;padding:17px;margin:15px 0}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{border:1px solid #ddd;border-radius:11px;padding:13px;background:#fafafa}
+label{display:flex;justify-content:space-between;font-weight:bold;margin-bottom:8px}input{width:100%;accent-color:#3267a8}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.stat{text-align:center;border:1px solid #ddd;border-radius:11px;padding:10px}.k{font-size:18px;color:#444;font-weight:600}.v{font-size:23px;font-weight:bold;margin-top:4px}
+.formula{text-align:center;background:#f3f6fa;padding:14px;border-radius:9px;margin:13px 0;font-size:24px;line-height:1.35}.formula math{font-size:1.25em}
+svg{width:100%;height:auto;border:1px solid #eee;border-radius:10px}.note{font-size:13px;color:#666;margin-top:8px}
+button{border:1px solid #bbb;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;margin:4px 4px 4px 0}button:hover{background:#f0f4f8}
+details{margin-top:10px}.aha{background:#fff8df;border-left:5px solid #d59b00;padding:12px;border-radius:8px}
+.prompt{font-weight:bold;font-size:17px;margin-bottom:7px}.answer{margin-top:8px;color:#444}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.controls,.stats,.two{grid-template-columns:1fr 1fr}}@media(max-width:520px){.controls,.stats,.two{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<h1>Binomial Distribution Explorer</h1>
+<div class="subtitle">An interactive laboratory for discovering what the binomial distribution is—and what its parameters do.</div>
+
+<div class="section">
+<div class="controls">
+<div class="card"><label>Trials, n <span id="nVal">10</span></label><input id="n" type="range" min="1" max="60" value="10"></div>
+<div class="card"><label>Success probability, p <span id="pVal">0.50</span></label><input id="p" type="range" min="0.01" max="0.99" step="0.01" value="0.50"></div>
+<div class="card"><label>Selected successes, r <span id="rVal">5</span></label><input id="r" type="range" min="0" max="10" value="5"></div>
+</div>
+<div class="stats" style="margin-top:14px">
+<div class="stat"><div class="k">q = 1 − p</div><div class="v" id="qVal">0.50</div></div>
+<div class="stat"><div class="k">Mean <span>μ = np</span></div><div class="v" id="meanVal">5.00</div></div>
+<div class="stat"><div class="k">Variance <span>σ² = npq</span></div><div class="v" id="varVal">2.50</div></div>
+<div class="stat"><div class="k">P(X = r)</div><div class="v" id="prVal">0.2461</div></div>
+<div class="stat"><div class="k">SD = √variance</div><div class="v" id="sdVal">1.58</div></div>
+</div>
+<div class="formula"><math display="block">
+<mi>P</mi><mo>(</mo><mi>X</mi><mo>=</mo><mi>r</mi><mo>)</mo><mo>=</mo>
+<mrow><mo>(</mo><mfrac linethickness="0"><mi>n</mi><mi>r</mi></mfrac><mo>)</mo></mrow>
+<msup><mi>p</mi><mi>r</mi></msup>
+<msup><mi>q</mi><mrow><mi>n</mi><mo>−</mo><mi>r</mi></mrow></msup>
+</math></div>
+<svg id="chart" viewBox="0 0 950 390" aria-label="Binomial probability mass function"></svg>
+<div class="note">Blue = selected r. Dashed line = mean. Hover over a bar for its probability.</div>
+</div>
+
+<div class="section">
+<h2>Explore — don't calculate first</h2>
+<div class="two">
+<div class="aha"><div class="prompt">1. Increase p. What happens to the distribution?</div><button onclick="setP(.2)">Try p = 0.2</button><button onclick="setP(.5)">p = 0.5</button><button onclick="setP(.8)">p = 0.8</button><div class="answer">Watch the centre move. Ask yourself why the mean changes.</div></div>
+<div class="aha"><div class="prompt">2. Where is the variance largest?</div><button onclick="setP(.1)">p = 0.1</button><button onclick="setP(.5)">p = 0.5</button><button onclick="setP(.9)">p = 0.9</button><div class="answer">Compare the spread. Then look at npq.</div></div>
+<div class="aha"><div class="prompt">3. Can the mean be impossible?</div><button onclick="setNP(5,.5)">n=5, p=.5</button><button onclick="setNP(7,.5)">n=7, p=.5</button><div class="answer">Ask: can you get exactly the mean number of successes?</div></div>
+<div class="aha"><div class="prompt">4. What does increasing n do?</div><button onclick="setN(5)">n = 5</button><button onclick="setN(20)">n = 20</button><button onclick="setN(50)">n = 50</button><div class="answer">Watch both the centre and the spread. Think about SD versus variance.</div></div>
+</div>
+</div>
+
+<div class="section">
+<h2>Why does the binomial formula look like that?</h2>
+<div class="formula">P(X=r) = C(n,r) p<sup>r</sup> q<sup>n−r</sup></div>
+<details><summary><b>Step 1 — Why p<sup>r</sup> q<sup>n−r</sup>?</b></summary>
+<p>Suppose exactly r of n trials are successes. A particular sequence with r successes and n−r failures has probability <b>p<sup>r</sup>q<sup>n−r</sup></b>.</p></details>
+<details><summary><b>Step 2 — But there are many possible sequences</b></summary>
+<p>For n = 4 and r = 2: HHTT, HTHT, HTTH, THHT, THTH, TTHH. There are 6.</p></details>
+<details><summary><b>Step 3 — Where does C(n,r) come from?</b></summary>
+<p><b>C(n,r)</b> counts how many ways r successes can be placed among n trials.</p></details>
+<div class="aha" style="margin-top:12px"><b>Aha:</b> The binomial formula is not a mysterious probability formula. It is <b>probability of one particular sequence × number of sequences that have r successes</b>.</div>
+</div>
+
+<div class="section">
+<h2>Three questions to investigate</h2>
+<ol>
+<li>Find values of n and p for which the mean is not an integer. Is the mean itself a possible value of X?</li>
+<li>Keep n fixed. Find where the variance is largest. Can you explain why?</li>
+<li>Keep p = 0.5 and increase n. Does the distribution get wider, narrower, or simply change scale? Compare the variance and the standard deviation.</li>
+</ol>
+<button onclick="resetDemo()">Reset to n=10, p=0.50, r=5</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function logChoose(n,k){let s=0;for(let i=1;i<=k;i++)s+=Math.log(n-k+i)-Math.log(i);return Math.exp(s)}
+function pmf(n,p,k){if(k<0||k>n)return 0;if(p===0)return k===0?1:0;if(p===1)return k===n?1:0;return logChoose(n,k)*p**k*(1-p)**(n-k)}
+function render(){
+const n=+$("n").value,p=+$("p").value,q=1-p;$("r").max=n;if(+$("r").value>n)$("r").value=n;
+const r=+$("r").value,mean=n*p,varx=n*p*q,sd=Math.sqrt(varx),pr=pmf(n,p,r);
+$("nVal").textContent=n;$("pVal").textContent=p.toFixed(2);$("qVal").textContent=q.toFixed(2);$("rVal").textContent=r;
+$("meanVal").textContent=mean.toFixed(2);$("varVal").textContent=varx.toFixed(2);$("sdVal").textContent=sd.toFixed(2);$("prVal").textContent=pr.toFixed(4);
+const probs=Array.from({length:n+1},(_,k)=>pmf(n,p,k));const W=950,H=390,L=58,R=20,T=22,B=56,pw=W-L-R,ph=H-T-B;
+const maxP=Math.max(...probs,.01),yMax=maxP*1.18,slot=pw/(n+1),barW=Math.max(3,slot*.72);let s="";
+for(let j=0;j<=4;j++){let y=T+ph*j/4,val=yMax*(1-j/4);s+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="#999" opacity=".18"/><text x="${L-8}" y="${y+4}" text-anchor="end" font-size="11" fill="#666">${val.toFixed(2)}</text>`}
+probs.forEach((v,k)=>{let x=L+slot*(k+.5),h=v/yMax*ph,y=T+ph-h,sel=k===r;s+=`<rect x="${x-barW/2}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${sel?'#3267a8':'#777'}" opacity="${sel?1:.55}"><title>X=${k}: P=${v.toFixed(5)}</title></rect>`;if(n<=25||k%Math.ceil(n/20)===0)s+=`<text x="${x}" y="${H-B+17}" text-anchor="middle" font-size="11" fill="#555">${k}</text>`});
+let mx=L+slot*(mean+.5);s+=`<line x1="${mx}" y1="${T}" x2="${mx}" y2="${H-B}" stroke="#b24b35" stroke-width="2" stroke-dasharray="7 5"/><text x="${Math.min(mx+7,W-R-45)}" y="${T+14}" font-size="12" fill="#9b3f2d">mean</text><line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#555"/><text x="${(L+W-R)/2}" y="${H-12}" text-anchor="middle" font-size="13" fill="#555">Number of successes, X</text>`;$("chart").innerHTML=s}
+function setP(x){$("p").value=x;render()}function setN(x){$("n").value=x;render()}function setNP(n,p){$("n").value=n;$("p").value=p;$("r").value=Math.round(n*p);render()}function resetDemo(){$("n").value=10;$("p").value=.5;$("r").value=5;render()}
+["n","p","r"].forEach(id=>$(id).addEventListener("input",render));render();
+</script></body></html>

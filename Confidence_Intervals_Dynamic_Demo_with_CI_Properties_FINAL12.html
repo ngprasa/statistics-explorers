@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confidence Intervals — Dynamic Demonstration</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#f4f4f4;color:#222;font-family:Calibri,Arial,sans-serif}
+.app{width:100%;max-width:none;margin:0;background:#fff;min-height:100vh}
+header{padding:20px 28px 14px;border-bottom:1px solid #bbb} h1{margin:0 0 5px;font-size:27px}.sub{font-size:15px;color:#555}
+.tabs{display:flex;border-bottom:1px solid #aaa;background:#fafafa}.tab{padding:13px 22px;border:0;border-right:1px solid #ccc;background:#fafafa;font:600 15px Calibri,Arial;cursor:pointer}.tab.active{background:#fff;border-top:3px solid #333;padding-top:10px}
+.workspace{display:grid;grid-template-columns:275px minmax(0,1fr);align-items:stretch}
+.controls{padding:16px 14px;border-right:1px solid #ccc;background:#fafafa;display:flex;flex-direction:column;gap:11px;align-items:stretch}
+.group{min-width:0}.wide{min-width:0}.actions{display:flex;flex-direction:column;gap:7px}
+.coverage{margin:2px 0 0;border:1px solid #888;border-radius:5px;padding:8px 10px;min-width:0;text-align:center}
+@media(max-width:900px){.workspace{grid-template-columns:1fr}.controls{border-right:0;border-bottom:1px solid #ccc;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}.coverage{grid-column:1/-1}}
+label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}select,input[type=number]{width:100%;height:32px;border:1px solid #999;border-radius:4px;background:#fff;padding:4px 7px;font:14px Calibri,Arial}input[type=range]{width:100%}.rangeval{text-align:center;font-size:11px;color:#555}
+.actions{display:flex;gap:7px}button.action{height:34px;padding:0 13px;border:1px solid #555;border-radius:4px;background:#fff;font:600 14px Calibri,Arial;cursor:pointer}
+.coverage{margin-left:auto;border:1px solid #888;border-radius:5px;padding:7px 13px;min-width:190px;text-align:center}.coverage .big{font-size:22px;font-weight:700}.coverage .small{font-size:11px;color:#555}
+.canvasWrap{padding:12px 18px 8px}svg{width:100%;display:block;border:1px solid #ccc;background:#fff}.note,.formula{padding:9px 24px 16px;font-size:13px;color:#555}.formula{border-top:1px solid #ddd;color:#333}
+
+#pauseSampling:disabled { opacity: .55; cursor: default; }
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+<div class="app">
+<header><h1>Confidence Intervals — Dynamic Demonstration</h1><div class="sub">Population → sampling distribution → sample estimate → confidence interval → repeated sampling → coverage</div></header>
+<div class="tabs">
+<button class="tab active" data-tab="meanZ">1. Mean — σ known (Z)</button>
+<button class="tab" data-tab="meanT">2. Mean — σ unknown (t)</button>
+<button class="tab" data-tab="variance">3. Variance</button>
+ <button class="tab" data-tab="properties">4. CI Properties</button>
+</div>
+<div class="workspace">
+<div class="controls">
+ <div id="propertiesControls" style="display:none">
+  <div class="group"><label>Population mean μ</label><input id="propMu" type="number" value="10" step=".5"></div>
+  <div class="group"><label>Population SD σ</label><input id="propSigma" type="number" value="2" min="1" step=".1"></div>
+  <div class="group wide"><label>Confidence level: <span id="propClLabel">95%</span></label><input id="propCl" type="range" min="80" max="99" value="95"><div class="rangeval">80% — 99%</div></div>
+ </div>
+ <div id="standardControls">
+  <div class="group"><label>Population shape</label><select id="shape"><option value="normal">Normal</option><option value="uniform">Uniform</option><option value="skew">Right-skewed</option><option value="bimodal">Bimodal</option></select></div>
+  <div class="group"><label>Population mean μ</label><input id="mu" type="number" value="10" step=".5"></div>
+  <div class="group"><label>Population SD σ</label><input id="sigma" type="number" value="2" min="1" step=".1"></div>
+  <div class="group"><label>Sample size n</label><input id="n" type="number" value="25" min="2" max="200"></div>
+  <div class="group wide"><label>Confidence level: <span id="clLabel">95%</span></label><input id="cl" type="range" min="80" max="99" value="95"><div class="rangeval">80% — 99%</div></div>
+  <div class="actions"><button class="action" id="one">Take one sample</button><button class="action" id="start">Start sampling (1/sec)</button>
+<button id="pauseSampling" type="button">Pause Sampling</button><button class="action" id="stop">Stop sampling</button><button class="action" id="clear">Clear</button></div>
+  <div class="coverage"><div class="big" id="coverage">—</div><div class="small" id="coverageText">0 intervals shown</div></div>
+ </div>
+</div>
+<div class="canvasWrap"><svg id="viz" viewBox="0 0 1400 900"></svg></div>
+</div>
+<div class="note" id="note"></div><div class="formula" id="formula"></div>
+</div>
+<script>
+const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id),W=1400,H=900,L=100,R=1320;
+let tab="meanZ",rows=[],history=[],seq=0,timer=null;
+const pausedByTab={meanZ:false,meanT:false,variance:false};
+const states={meanZ:{rows:[],history:[],seq:0},meanT:{rows:[],history:[],seq:0},variance:{rows:[],history:[],seq:0}};
+function saveState(){if(tab!=="properties")states[tab]={rows,history,seq};}
+function loadState(t){if(t==="properties")return;const q=states[t]||{rows:[],history:[],seq:0};rows=q.rows;history=q.history;seq=q.seq;}
+function resetCycle(){if(tab!=="properties"){rows=[];history=[];seq=0;saveState();}}
+function E(t,a={},s=""){let e=document.createElementNS(NS,t);for(let k in a)e.setAttribute(k,a[k]);if(s)e.textContent=s;return e}
+function add(t,a,s){ $("viz").appendChild(E(t,a,s));}
+function ln(x1,y1,x2,y2,a={}){add("line",{x1,y1,x2,y2,...a})}
+function tx(x,y,s,a={}){add("text",{x,y,...a},s)}
+function rr(x,y,w,h,a={}){add("rect",{x,y,width:w,height:h,...a})}
+function path(d,a={}){add("path",{d,...a})}
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let t=1/(1+.3275911*x),p=(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t;return s*(1-p*Math.exp(-x*x))}
+function ncdf(x){return .5*(1+erf(x/Math.SQRT2))}
+function invN(p){
+ if(p<=0||p>=1) return NaN;
+ const a1=-39.6968302866538,a2=220.946098424521,a3=-275.928510446969,a4=138.357751867269,a5=-30.6647980661472,a6=2.50662827745924;
+ const b1=-54.4760987982241,b2=161.585836858041,b3=-155.698979859887,b4=66.8013118877197,b5=-13.2806815528857;
+ const c1=-0.00778489400243029,c2=-0.322396458041136,c3=-2.40075827716184,c4=-2.54973253934373,c5=4.37466414146497,c6=2.93816398269878;
+ const d1=0.00778469570904146,d2=0.32246712907004,d3=2.445134137143,d4=3.75440866190742;
+ const pl=0.02425,ph=1-pl;
+ if(p<pl){const q=Math.sqrt(-2*Math.log(p)); return (((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
+ if(p>ph){const q=Math.sqrt(-2*Math.log(1-p)); return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1*q+d2)*q+d3)*q+d4)*q+1);}
+ const q=p-0.5,r=q*q;
+ return (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q/(((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1);
+}
+function gln(z){let c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,.001208650973866179,-5.395239384953e-6],x=z,y=x,tmp=x+5.5;tmp-=(x+.5)*Math.log(tmp);let s=1.000000000190015;for(let j=0;j<6;j++){y+=1;s+=c[j]/y}return-tmp+Math.log(2.5066282746310005*s/x)}
+function bc(a,b,x){let M=120,EPS=3e-9,F=1e-30,qab=a+b,qap=a+1,qam=a-1,c=1-qab*x/qap;if(Math.abs(c)<F)c=F;c=1/c;let d=1-qab*x/qap;if(Math.abs(d)<F)d=F;d=1/d;let h=d;for(let m=1;m<=M;m++){let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;h*=d*c;aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<EPS)break}return h}
+function ib(x,a,b){if(x<=0)return 0;if(x>=1)return 1;let bt=Math.exp(gln(a+b)-gln(a)-gln(b)+a*Math.log(x)+b*Math.log(1-x));return x<(a+1)/(a+b+2)?bt*bc(a,b,x)/a:1-bt*bc(b,a,1-x)/b}
+function tcdf(t,df){if(t===0)return .5;let q=ib(df/(df+t*t),df/2,.5);return t>0?1-.5*q:.5*q}
+function invT(p,df){let lo=-20,hi=20;for(let i=0;i<70;i++){let m=(lo+hi)/2;if(tcdf(m,df)<p)lo=m;else hi=m}return(lo+hi)/2}
+function chiPDF(x,k){if(x<=0)return 0;return Math.exp((k/2-1)*Math.log(x)-x/2-(k/2)*Math.log(2)-gln(k/2))}
+
+/* Chi-square CDF via the regularized lower incomplete gamma function.
+   This is used only by the variance tab. Keeping it separate avoids
+   disturbing the already-working Z/t calculations. */
+function gammaP(a,x){
+  if(x<=0)return 0;
+  const ITMAX=200, EPS=3e-10, FPMIN=1e-300;
+  const gl=gln(a);
+  if(x<a+1){
+    let sum=1/a, term=sum;
+    for(let n=1;n<=ITMAX;n++){
+      term*=x/(a+n); sum+=term;
+      if(Math.abs(term)<Math.abs(sum)*EPS)break;
+    }
+    return sum*Math.exp(-x+a*Math.log(x)-gl);
+  }else{
+    let b=x+1-a, c=1/FPMIN, d=1/b, h=d;
+    for(let i=1;i<=ITMAX;i++){
+      let an=-i*(i-a);
+      b+=2;
+      d=an*d+b; if(Math.abs(d)<FPMIN)d=FPMIN;
+      c=b+an/c; if(Math.abs(c)<FPMIN)c=FPMIN;
+      d=1/d; let del=d*c; h*=del;
+      if(Math.abs(del-1)<EPS)break;
+    }
+    return 1-Math.exp(-x+a*Math.log(x)-gl)*h;
+  }
+}
+function chiCDF(x,k){return gammaP(k/2,x/2)}
+function invChi(p,k){
+  if(p<=0)return 0;if(p>=1)return Infinity;
+  let lo=0,hi=Math.max(20,k+10*Math.sqrt(2*k));
+  while(chiCDF(hi,k)<p)hi*=2;
+  for(let i=0;i<90;i++){
+    let m=(lo+hi)/2;
+    if(chiCDF(m,k)<p)lo=m;else hi=m;
+  }
+  return (lo+hi)/2;
+}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function gr(shape){if(shape<1)return gr(shape+1)*Math.pow(Math.random(),1/shape);let d=shape-1/3,c=1/Math.sqrt(9*d);for(;;){let x=randn(),v=1+c*x;if(v<=0)continue;v*=v*v;let u=Math.random();if(u<1-.0331*x*x*x*x)return d*v;if(Math.log(u)<.5*x*x+d*(1-v+Math.log(v)))return d*v}}
+function sample(shape,mu,sig,n){let a=[];if(shape==="normal"){for(let i=0;i<n;i++)a.push(mu+sig*randn())}else if(shape==="uniform"){let w=sig*Math.sqrt(12);for(let i=0;i<n;i++)a.push(mu+(Math.random()-.5)*w)}else if(shape==="skew"){for(let i=0;i<n;i++){let g=gr(4);a.push(mu+sig*(g-4)/2)}}else{let sep=.75,within=.66,sc=1/Math.sqrt(sep*sep+within*within);for(let i=0;i<n;i++){let m=Math.random()<.5?-sep:sep;a.push(mu+sig*sc*(m+within*randn()))}}return a}
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length}
+function v(a){let m=mean(a);return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)}
+function P(){return{shape:$("shape").value,mu:+$("mu").value,sig:Math.max(.2,+$("sigma").value),n:Math.max(2,+$("n").value),cl:+$("cl").value/100}}
+function info(){return tab==="meanZ"?{kind:"mean",m:"Z"}:tab==="meanT"?{kind:"mean",m:"t"}:{kind:"var",m:"chi"}}
+function ref(p){let I=info(),a=(1-p.cl)/2;if(I.kind==="mean"){let se=p.sig/Math.sqrt(p.n),q=I.m==="Z"?invN(1-a):invT(1-a,p.n-1);return{c:p.mu,se,lo:p.mu-q*se,hi:p.mu+q*se,q}}let df=p.n-1,s2=p.sig*p.sig,l=invChi(a,df),u=invChi(1-a,df);return{c:s2,lo:df*s2/u,hi:df*s2/l,df}}
+function dmean(x,p){let se=p.sig/Math.sqrt(p.n);return Math.exp(-.5*((x-p.mu)/se)**2)/(se*Math.sqrt(2*Math.PI))}
+function ds2(x,p){if(x<=0)return 0;let df=p.n-1,c=df/(p.sig*p.sig);return c*chiPDF(c*x,df)}
+function clear(){while($("viz").firstChild)$("viz").removeChild($("viz").firstChild)}
+function axes(x0,x1,y0,y1){ln(L,y1,R,y1,{stroke:"#333"});ln(L,y0,L,y1,{stroke:"#333"});for(let i=0;i<=6;i++){let x=L+i*(R-L)/6,z=x0+i*(x1-x0)/6;ln(x,y1,x,y1+5,{stroke:"#333"});tx(x,y1+20,fmt(z),{"font-size":11,"text-anchor":"middle"})}}
+function fmt(x){return Number(x).toFixed(2)}
+function curve(x0,x1,y0,y1,fn,my){let d="";for(let i=0;i<=240;i++){let x=x0+(x1-x0)*i/240,y=fn(x),sx=L+(x-x0)/(x1-x0)*(R-L),sy=y1-(y/my)*(y1-y0);d+=(i?"L":"M")+sx+","+sy}path(d,{fill:"none",stroke:"#333","stroke-width":3})}
+function drawPop(p){let y0=60,y1=170,x0=p.mu-4*p.sig,x1=p.mu+4*p.sig,ds=[],xs=[];for(let i=0;i<=220;i++){let x=x0+(x1-x0)*i/220,d=0;if(p.shape==="normal")d=Math.exp(-.5*((x-p.mu)/p.sig)**2)/(p.sig*Math.sqrt(2*Math.PI));else if(p.shape==="uniform")d=Math.abs(x-p.mu)<=p.sig*Math.sqrt(3)?1/(2*p.sig*Math.sqrt(3)):0;else if(p.shape==="skew"){let z=(x-p.mu)/p.sig+4;d=z>0?Math.pow(z,3)*Math.exp(-z)/6/p.sig/1.7:0}else{let s=.66*p.sig/Math.sqrt(.66*.66+.75*.75),m=.75*p.sig/Math.sqrt(.66*.66+.75*.75);d=.5*Math.exp(-.5*((x-(p.mu-m))/s)**2)/(s*Math.sqrt(2*Math.PI))+.5*Math.exp(-.5*((x-(p.mu+m))/s)**2)/(s*Math.sqrt(2*Math.PI))}xs.push(x);ds.push(d)}tx(30,48,"Population",{"font-size":17,"font-weight":"700"});tx(30,67,`${p.shape==="skew"?"right-skewed":p.shape}   |   μ = ${fmt(p.mu)}   σ = ${fmt(p.sig)}`,{"font-size":12});ln(L,y1,R,y1,{stroke:"#333"});let my=Math.max(...ds)*1.12,d="";for(let i=0;i<xs.length;i++){let sx=L+i/220*(R-L),sy=y1-ds[i]/my*(y1-y0);d+=(i?"L":"M")+sx+","+sy}path(d,{fill:"none",stroke:"#333","stroke-width":2});tx(L,y1+18,fmt(x0),{"font-size":11});tx(R,y1+18,fmt(x1),{"font-size":11,"text-anchor":"end"})}
+function ytStart(){return 442}
+function drawSampling(p){let I=info(),b=ref(p),y0=215,y1=385,c=b.c,x0,x1,fn;
+if(I.kind==="mean"){
+  /* Keep an absolute x-axis fixed to the population scale.
+     Changing n now changes the spread on the same axis, rather than
+     zooming the graph to fit the new standard error. */
+  x0=p.mu-4*p.sig; x1=p.mu+4*p.sig; fn=x=>dmean(x,p);
+}else{
+  /* Keep the variance scale fixed as n changes. */
+  x0=0; x1=Math.max(4*p.sig*p.sig, p.sig*p.sig+1); fn=x=>ds2(x,p);
+}
+let my=0;for(let i=0;i<=300;i++)my=Math.max(my,fn(x0+(x1-x0)*i/300));my*=1.18;
+tx(30,204,"Theoretical sampling distribution",{"font-size":17,"font-weight":"700"});
+axes(x0,x1,y0,y1);curve(x0,x1,y0,y1,fn,my);
+let sx=x=>L+(x-x0)/(x1-x0)*(R-L);
+let blo=Math.max(x0,b.lo), bhi=Math.min(x1,b.hi);
+if(bhi>blo) rr(sx(blo),y0,sx(bhi)-sx(blo),y1-y0,{fill:"#eee",stroke:"none"});
+curve(x0,x1,y0,y1,fn,my);
+ln(sx(c),y0,sx(c),ytStart()+20*17+8,{stroke:"#111","stroke-width":2});
+if(b.lo>=x0&&b.lo<=x1) {
+  ln(sx(b.lo),y0,sx(b.lo),y1,{stroke:"#777","stroke-width":2});
+  ln(sx(b.lo),y1,sx(b.lo),ytStart()+20*17+8,{stroke:"#777","stroke-width":1.5,"stroke-dasharray":"4,5"});
+}
+if(b.hi>=x0&&b.hi<=x1) {
+  ln(sx(b.hi),y0,sx(b.hi),y1,{stroke:"#777","stroke-width":2});
+  ln(sx(b.hi),y1,sx(b.hi),ytStart()+20*17+8,{stroke:"#777","stroke-width":1.5,"stroke-dasharray":"4,5"});
+}
+tx(sx(c),y0+16,I.kind==="mean"?"true mean":"true variance",{"font-size":11,"text-anchor":"middle"});
+tx(1110,204,`${Math.round(p.cl*100)}% central reference region`,{"font-size":12});
+tx(1110,225,I.kind==="mean"?`SE = ${fmt(b.se)}`:`df = ${b.df}`,{"font-size":12})}
+function drawRows(p){let I=info(),target=I.kind==="mean"?p.mu:p.sig*p.sig,b=ref(p),x0,x1;
+if(I.kind==="mean"){x0=p.mu-4*p.sig;x1=p.mu+4*p.sig}else{x0=0;x1=Math.max(4*p.sig*p.sig,p.sig*p.sig+1)}
+let sx=x=>L+(x-x0)/(x1-x0)*(R-L),yt=430;tx(30,421,"Repeated samples",{"font-size":17,"font-weight":"700"});tx(30,439,I.kind==="mean"?"Sample mean and confidence interval":"Sample variance and confidence interval",{"font-size":12,fill:"#555"});ln(sx(target),yt-5,sx(target),yt+20*17+5,{stroke:"#111","stroke-width":2});rows.forEach((r,i)=>{let y=yt+12+i*17,z=intervalFor(r,p),ok=z.lo<=target&&target<=z.hi;ln(L,y,R,y,{stroke:"#ddd"});let col=ok?"#238b45":"#c62828";ln(sx(z.lo),y,sx(z.hi),y,{stroke:col,"stroke-width":3});ln(sx(z.lo),y-5,sx(z.lo),y+5,{stroke:col,"stroke-width":2});ln(sx(z.hi),y-5,sx(z.hi),y+5,{stroke:col,"stroke-width":2});add("circle",{cx:sx(r.est),cy:y,r:5,fill:col,stroke:col,"stroke-width":2});tx(48,y+4,String(r.id).padStart(2,"0"),{"font-size":10,"text-anchor":"end",fill:"#555"});});tx(sx(target),yt+20*17+20,"true "+(I.kind==="mean"?"mean":"variance"),{"font-size":11,"text-anchor":"middle"})}
+function intervalFor(r,p){let I=info(),a=(1-p.cl)/2;if(I.kind==="mean"){let n=p.n,q=I.m==="Z"?invN(1-a):invT(1-a,n-1),se=I.m==="Z"?p.sig/Math.sqrt(n):Math.sqrt(r.s2)/Math.sqrt(n);return{lo:r.est-q*se,hi:r.est+q*se}}let n=p.n,df=n-1,l=invChi(a,df),u=invChi(1-a,df);return{lo:df*r.est/u,hi:df*r.est/l}}
+
+
+function drawProperties(){
+ const svg=$("viz"); if(!svg)return;
+ const WW=1400,HH=900; svg.setAttribute("viewBox",`0 0 ${WW} ${HH}`); svg.innerHTML="";
+ const mu=+$('propMu').value, sigma=Math.min(3,Math.max(1,+$('propSigma').value));
+ const conf=+$('propCl').value;
+ const z=invN(0.5+conf/200);
+ const x0=120,x1=1320,y0=170,y1=760;
+ // Fixed vertical frame: centered on Xbar=mu and chosen to display the entire
+ // permitted sigma (1-3) and confidence (80-99) range clearly.
+ const span=4.5;
+ const yMin=mu-span,yMax=mu+span;
+ const X=n=>x0+(n-2)/198*(x1-x0);
+ const Y=v=>y1-(v-yMin)/(yMax-yMin)*(y1-y0);
+ const ym=Y(mu);
+ tx(30,55,"CI Properties",{"font-size":24,"font-weight":"700"});
+ tx(30,82,`Population: μ = ${fmt(mu)}, σ = ${fmt(sigma)}; confidence level = ${conf}%`,{"font-size":15,fill:"#555"});
+ ln(x0,ym,x1,ym,{stroke:"#555","stroke-width":2,"stroke-dasharray":"9 7"});
+ tx(x0+10,ym-12,"X̄ = μ",{"font-size":16,"font-weight":"700"});
+ const up=[],lo=[];
+ for(let n=2;n<=200;n++){let h=z*sigma/Math.sqrt(n);up.push([X(n),Y(mu+h)]);lo.push([X(n),Y(mu-h)]);}
+ const P=pts=>pts.map((q,i)=>(i?"L":"M")+q[0]+","+q[1]).join(" ");
+ const poly=up.concat(lo.slice().reverse()).map(q=>q.join(",")).join(" ");
+ rr(x0,y0,x1-x0,y1-y0,{fill:"#fff",stroke:"none"});
+ // Full two-sided CI band.
+ add("polygon",{points:poly,fill:"#d9d9d9",opacity:.8});
+ path(P(up),{fill:"none",stroke:"#222","stroke-width":3});
+ path(P(lo),{fill:"none",stroke:"#222","stroke-width":3});
+ ln(x0,y0,x0,y1,{stroke:"#222"}); ln(x0,y1,x1,y1,{stroke:"#222"});
+ [-4,-2,0,2,4].forEach(d=>{let yy=Y(mu+d);ln(x0-6,yy,x0,yy,{stroke:"#222"});tx(x0-12,yy+5,d===0?"μ":(d>0?"+":"")+d,{"font-size":12,"text-anchor":"end"})});
+ [2,5,10,25,50,100,200].forEach(n=>{let xx=X(n);ln(xx,y1,xx,y1+7,{stroke:"#222"});tx(xx,y1+27,String(n),{"font-size":12,"text-anchor":"middle"})});
+ tx((x0+x1)/2,y1+52,"Sample size n",{"font-size":15,"text-anchor":"middle"});
+ tx(28,(y0+y1)/2,"Estimate relative to μ",{"font-size":14,"text-anchor":"middle",transform:`rotate(-90 28 ${(y0+y1)/2})`});
+ tx(x1-5,up[up.length-1][1]-10,"Upper CI limit",{"font-size":13,"text-anchor":"end"});
+ tx(x1-5,lo[lo.length-1][1]+18,"Lower CI limit",{"font-size":13,"text-anchor":"end"});
+ tx(x0,y0-18,`CI = X̄ ± ${z.toFixed(3)} × ${fmt(sigma)} / √n`,{"font-size":14});
+}
+
+function draw(){
+ if(tab==="properties"){
+  drawProperties();
+  $("standardControls").style.display="none";
+  $("propertiesControls").style.display="block";
+  $("coverage").style.display="none";
+  $("propClLabel").textContent=Math.round(+$("propCl").value)+"%";
+  return;
+ }
+ $("standardControls").style.display="block";
+ $("propertiesControls").style.display="none";
+ $("coverage").style.display="block";
+ let p=P();clear();drawPop(p);drawSampling(p);drawRows(p);$("clLabel").textContent=Math.round(p.cl*100)+"%";let I=info(),target=I.kind==="mean"?p.mu:p.sig*p.sig,hits=history.filter(r=>{let z=intervalFor(r,p);return z.lo<=target&&target<=z.hi}).length;$("coverage").textContent=history.length?Math.round(100*hits/history.length)+"%":"—";$("coverageText").textContent=`${hits} of ${history.length} intervals captured the true value`;$("note").innerHTML=I.kind==="mean"?(I.m==="Z"?"<b>Known σ:</b> the fixed dotted boundaries show the Z critical limits. A sample mean outside them produces a CI that misses the true mean.":"<b>Unknown σ:</b> the dotted boundaries show the t critical limits. Because the t distribution has heavier tails, these limits are wider than the corresponding Z limits, so misses are less frequent—but they can still occur."):"<b>Variance:</b> the interval uses the chi-square distribution. It is asymmetric because the chi-square distribution is asymmetric, and is exact under a normal-population assumption.";$("formula").innerHTML=I.kind==="mean"?(I.m==="Z"?"<b>Z CI:</b> sample mean ± z* × σ/√n":"<b>t CI:</b> sample mean ± t* × s/√n, df = n − 1"):"<b>Variance CI:</b> [(n − 1)s² / χ²<sub>upper</sub>, (n − 1)s² / χ²<sub>lower</sub>]"}
+function take(){let p=P(),I=info(),rec;
+if(I.kind==="mean"){
+  let a=sample(p.shape,p.mu,p.sig,p.n),m=mean(a),s=Math.sqrt(v(a));
+  rec={id:++seq,est:m,s2:s*s,kind:"mean",nAtSample:p.n};
+}else{
+  let a=sample(p.shape,p.mu,p.sig,p.n),s2=v(a);rec={id:++seq,est:s2,s2:s2,kind:"var",nAtSample:p.n};
+}
+history.push(rec); rows.push(rec); if(rows.length>20)rows.shift(); draw();
+}
+$("one").onclick=take;
+function updatePauseButton(){
+ const b=$("pauseSampling"); if(!b) return;
+ b.textContent=pausedByTab[tab]?"Resume Sampling":"Pause Sampling";
+ b.disabled=(!timer && !pausedByTab[tab]);
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+ clearInterval(timer); timer=null;
+ saveState();
+ tab=b.dataset.tab;
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));
+ if(tab!=="properties") loadState(tab);
+ updatePauseButton();
+ draw();
+});
+["shape","mu","sigma","n","cl"].forEach(id=>$(id).addEventListener("input",()=>{
+ if(tab!=="properties"){ rows=[]; history=[]; seq=0; saveState(); }
+ draw();
+}));
+["propMu","propSigma","propCl"].forEach(id=>$(id).addEventListener("input",draw));
+// A sampling run is one experimental cycle. Starting a new run begins a fresh
+// cumulative record; stopping preserves that run's record. Starting again resets it.
+$("start").onclick=()=>{
+  if(tab==="properties") return;
+  if(!timer){
+    pausedByTab[tab]=false;
+    resetCycle();
+    take();
+    timer=setInterval(take,1000);
+    updatePauseButton();
+  }
+};
+$("pauseSampling").onclick=()=>{
+  if(tab==="properties") return;
+  if(timer){
+    clearInterval(timer); timer=null;
+    pausedByTab[tab]=true;
+  }else if(pausedByTab[tab]){
+    // Resume the SAME sampling run. Nothing is reset.
+    pausedByTab[tab]=false;
+    take();
+    timer=setInterval(take,1000);
+  }
+  updatePauseButton();
+};
+$("stop").onclick=()=>{
+  clearInterval(timer); timer=null;
+  pausedByTab[tab]=false;
+  updatePauseButton();
+};
+$("clear").onclick=()=>{
+  clearInterval(timer); timer=null;
+  pausedByTab[tab]=false;
+  resetCycle();
+  updatePauseButton();
+  draw();
+};
+draw();
+updatePauseButton();
+</script>
+</body></html>

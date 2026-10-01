@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central Limit Theorem — Interactive Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Calibri, Arial, sans-serif;
+    color: #111;
+    background: #fff;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 18% 82%;
+  }
+  .controls {
+    border-right: 1px solid #bbb;
+    padding: 18px 16px;
+    overflow-y: auto;
+    background: #fafafa;
+  }
+  h1 {
+    font-size: 22px;
+    line-height: 1.1;
+    margin: 0 0 7px;
+  }
+  .subtitle {
+    font-size: 14px;
+    line-height: 1.3;
+    margin-bottom: 17px;
+  }
+  .section {
+    border-top: 1px solid #bbb;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  .label {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  select, button {
+    width: 100%;
+    font: inherit;
+    background: white;
+    border: 1px solid #888;
+    padding: 7px 8px;
+    border-radius: 3px;
+  }
+  button {
+    cursor: pointer;
+    margin-top: 9px;
+  }
+  button:hover { background: #f0f0f0; }
+  input[type=range] {
+    width: 100%;
+    margin: 5px 0 0;
+  }
+  .value {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 1px;
+  }
+  .small {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .stats {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .stats b { font-weight: 700; }
+  .bigidea {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .graphs {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    height: 100vh;
+  }
+  .panel {
+    position: relative;
+    min-height: 0;
+    padding: 8px 18px 12px 10px;
+  }
+  .panel + .panel { border-top: 1px solid #aaa; }
+  .graph-title {
+    position: absolute;
+    top: 8px;
+    left: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    z-index: 2;
+    background: rgba(255,255,255,.9);
+    padding-right: 8px;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .overlay-note {
+    position: absolute;
+    right: 28px;
+    top: 9px;
+    font-size: 12px;
+    background: rgba(255,255,255,.92);
+    padding: 3px 5px;
+  }
+  .formula {
+    margin-top: 8px;
+    font-size: 15px;
+    text-align: center;
+  }
+  .formula strong { font-size: 18px; }
+  .legend {
+    font-size: 12px;
+    margin-top: 7px;
+    line-height: 1.35;
+  }
+  .linekey {
+    display: inline-block;
+    width: 25px;
+    border-top: 2px dashed #555;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  .below {
+    width: 100%;
+    padding: 24px 18px 40px;
+    border-top: 1px solid #aaa;
+    font-family: Calibri, Arial, sans-serif;
+  }
+  .below-section {
+    max-width: 1100px;
+    margin: 0 auto 22px;
+    border: 1px solid #ccc;
+    padding: 16px 18px;
+    background: #fff;
+  }
+  .below-section.bigidea {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .below-section h2 {
+    font-size: 19px;
+    margin: 0 0 8px;
+  }
+  .below-section p, .below-section li {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .below-section ol { margin-bottom: 0; }
+
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<div class="app">
+  <aside class="controls">
+    <h1>Central Limit Theorem</h1>
+    <div class="subtitle">
+      Watch the sampling distribution of <i>x̄</i> change as sample size increases.
+    </div>
+
+    <div class="section">
+      <div class="label">Population</div>
+      <select id="population">
+        <option value="normal">Normal</option>
+        <option value="uniform">Uniform</option>
+        <option value="skewed">Right-skewed</option>
+        <option value="bimodal">Bimodal</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <div class="label">Sample size, <i>n</i></div>
+      <input id="n" type="range" min="2" max="100" value="10" step="1">
+      <div class="value" id="nVal">10</div>
+      <div class="small">Move slowly and watch the lower graph.</div>
+    </div>
+
+    <div class="section">
+      <div class="label">Repeated samples</div>
+      <input id="reps" type="range" min="200" max="5000" value="1500" step="100">
+      <div class="value" id="repsVal">1500</div>
+      <button id="resample">Resample</button>
+    </div>
+
+    <div class="section stats">
+      <div><b>Population mean μ:</b> <span id="mu">0.00</span></div>
+      <div><b>Population SD σ:</b> <span id="sigma">1.00</span></div>
+      <div><b>SD of x̄, σ/√n:</b> <span id="se">0.32</span></div>
+    </div>
+
+    <div class="section bigidea">
+      <b>What to watch for</b><br>
+      The population does not change when <i>n</i> changes. The sampling distribution does:
+      it becomes narrower, and for non-normal populations its shape becomes increasingly Gaussian.
+    </div>
+  </aside>
+
+  <main class="graphs">
+    <section class="panel">
+      <div class="graph-title">Population Distribution</div>
+      <canvas id="popCanvas"></canvas>
+    </section>
+    <section class="panel">
+      <div class="graph-title">Sampling Distribution of <i>x̄</i></div>
+      <div class="overlay-note">Dashed: Gaussian with μ and σ/√n</div>
+      <canvas id="sampleCanvas"></canvas>
+    </section>
+  </main>
+</div>
+
+<script>
+const popCanvas = document.getElementById('popCanvas');
+const sampleCanvas = document.getElementById('sampleCanvas');
+const pctx = popCanvas.getContext('2d');
+const sctx = sampleCanvas.getContext('2d');
+
+const popSelect = document.getElementById('population');
+const nSlider = document.getElementById('n');
+const repsSlider = document.getElementById('reps');
+const nVal = document.getElementById('nVal');
+const repsVal = document.getElementById('repsVal');
+const muEl = document.getElementById('mu');
+const sigmaEl = document.getElementById('sigma');
+const seEl = document.getElementById('se');
+
+let currentSamples = [];
+let populationType = 'normal';
+
+function resizeCanvas(c) {
+  const r = c.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  c.width = Math.max(1, Math.round(r.width*dpr));
+  c.height = Math.max(1, Math.round(r.height*dpr));
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function standardNormal() {
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function sampleOne() {
+  if (populationType === 'normal') return standardNormal();
+  if (populationType === 'uniform') return Math.sqrt(3)*(2*Math.random()-1);
+  if (populationType === 'skewed') return -1 + (-Math.log(Math.random()));
+  // Symmetric bimodal mixture, each component SD ~0.45, means -1.2 and +1.2.
+  const center = Math.random() < 0.5 ? -1.2 : 1.2;
+  return center + 0.45*standardNormal();
+}
+function populationPDF(x) {
+  if (populationType === 'normal') {
+    return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+  }
+  if (populationType === 'uniform') {
+    return (x>=-Math.sqrt(3) && x<=Math.sqrt(3)) ? 1/(2*Math.sqrt(3)) : 0;
+  }
+  if (populationType === 'skewed') {
+    return x >= -1 ? Math.exp(-(x+1)) : 0;
+  }
+  const a=1.2, sd=.45;
+  return 0.5*Math.exp(-((x-a)**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI))
+       +0.5*Math.exp(-((x+a)**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI));
+}
+function populationStats() {
+  if (populationType === 'normal') return {mu:0, sigma:1};
+  if (populationType === 'uniform') return {mu:0, sigma:1};
+  if (populationType === 'skewed') return {mu:0, sigma:1};
+  // Mixture variance = sd^2 + center^2
+  return {mu:0, sigma:Math.sqrt(1.44+0.2025)};
+}
+function getRange() {
+  if (populationType === 'uniform') return [-2.5,2.5];
+  if (populationType === 'skewed') return [-1,5];
+  if (populationType === 'bimodal') return [-3,3];
+  return [-4,4];
+}
+function drawAxes(ctx, W, H, xmin, xmax, ymax, yLabel) {
+  const L=55, R=18, T=38, B=38;
+  const x0 = L, y0 = H-B;
+  ctx.strokeStyle='#777'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,T); ctx.lineTo(x0,y0); ctx.lineTo(W-R,y0); ctx.stroke();
+  ctx.fillStyle='#222'; ctx.font='12px Calibri, Arial';
+  const ticks=8;
+  for(let i=0;i<=ticks;i++){
+    const x=x0+(W-R-x0)*i/ticks;
+    const val=xmin+(xmax-xmin)*i/ticks;
+    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y0+4); ctx.stroke();
+    ctx.textAlign='center'; ctx.fillText(val.toFixed(1),x,y0+18);
+  }
+  ctx.save();
+  ctx.translate(16,(T+y0)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText(yLabel,0,0);
+  ctx.restore();
+  return {L,R,T,B,x0,y0,plotW:W-R-x0,plotH:y0-T};
+}
+function plotPopulation() {
+  const W=popCanvas.clientWidth, H=popCanvas.clientHeight;
+  pctx.clearRect(0,0,W,H);
+  const [xmin,xmax]=getRange();
+  const muSig=populationStats();
+  let ymax=0;
+  for(let i=0;i<=500;i++){
+    ymax=Math.max(ymax,populationPDF(xmin+(xmax-xmin)*i/500));
+  }
+  ymax*=1.18;
+  const a=drawAxes(pctx,W,H,xmin,xmax,ymax,'Density');
+  const X=x=>a.x0+(x-xmin)/(xmax-xmin)*a.plotW;
+  const Y=y=>a.y0-(y/ymax)*a.plotH;
+  pctx.strokeStyle='#111'; pctx.lineWidth=2.2;
+  pctx.beginPath();
+  for(let i=0;i<=800;i++){
+    const x=xmin+(xmax-xmin)*i/800;
+    const y=populationPDF(x);
+    if(i===0) pctx.moveTo(X(x),Y(y)); else pctx.lineTo(X(x),Y(y));
+  }
+  pctx.stroke();
+  pctx.strokeStyle='#aaa'; pctx.setLineDash([5,4]); pctx.lineWidth=1;
+  pctx.beginPath(); pctx.moveTo(X(muSig.mu),a.T); pctx.lineTo(X(muSig.mu),a.y0); pctx.stroke();
+  pctx.setLineDash([]);
+  pctx.fillStyle='#222'; pctx.font='13px Calibri, Arial';
+  pctx.textAlign='left';
+  pctx.fillText('μ = '+muSig.mu.toFixed(2)+',   σ = '+muSig.sigma.toFixed(2), a.x0+8,a.T+18);
+}
+function normalPDF(x,mu,sd) {
+  return Math.exp(-0.5*((x-mu)/sd)**2)/(sd*Math.sqrt(2*Math.PI));
+}
+function makeSamples() {
+  const n=+nSlider.value, reps=+repsSlider.value;
+  const arr=new Array(reps);
+  for(let j=0;j<reps;j++){
+    let sum=0;
+    for(let i=0;i<n;i++) sum += sampleOne();
+    arr[j]=sum/n;
+  }
+  return arr;
+}
+function histogram(data,xmin,xmax,bins) {
+  const counts=new Array(bins).fill(0);
+  const w=(xmax-xmin)/bins;
+  for(const x of data){
+    let k=Math.floor((x-xmin)/w);
+    if(k>=0 && k<bins) counts[k]++;
+  }
+  return {counts,w};
+}
+function plotSampling() {
+  const W=sampleCanvas.clientWidth, H=sampleCanvas.clientHeight;
+  sctx.clearRect(0,0,W,H);
+  const {mu,sigma}=populationStats();
+  const n=+nSlider.value;
+  const se=sigma/Math.sqrt(n);
+  const range=populationType==='skewed' ? [-1.5,2.2] : [-2.5,2.5];
+  const xmin=range[0], xmax=range[1];
+  const bins=55;
+  const h=histogram(currentSamples,xmin,xmax,bins);
+  const maxCount=Math.max(...h.counts);
+  const ymax=Math.max(maxCount/currentSamples.length/h.w, normalPDF(mu,mu,se))*1.22;
+  const a=drawAxes(sctx,W,H,xmin,xmax,ymax,'Density');
+  const X=x=>a.x0+(x-xmin)/(xmax-xmin)*a.plotW;
+  const Y=y=>a.y0-(y/ymax)*a.plotH;
+
+  sctx.strokeStyle='#111'; sctx.lineWidth=1;
+  for(let i=0;i<bins;i++){
+    const left=xmin+i*h.w;
+    const density=h.counts[i]/currentSamples.length/h.w;
+    const x1=X(left)+.5, x2=X(left+h.w)-.5;
+    sctx.fillStyle='#d8d8d8';
+    sctx.fillRect(x1,Y(density),Math.max(1,x2-x1),a.y0-Y(density));
+    sctx.strokeRect(x1,Y(density),Math.max(1,x2-x1),a.y0-Y(density));
+  }
+
+  // Gaussian reference using population μ and σ/√n.
+  sctx.strokeStyle='#555'; sctx.setLineDash([7,5]); sctx.lineWidth=2;
+  sctx.beginPath();
+  for(let i=0;i<=800;i++){
+    const x=xmin+(xmax-xmin)*i/800;
+    const y=normalPDF(x,mu,se);
+    if(i===0) sctx.moveTo(X(x),Y(y)); else sctx.lineTo(X(x),Y(y));
+  }
+  sctx.stroke();
+  sctx.setLineDash([]);
+
+  sctx.strokeStyle='#999'; sctx.lineWidth=1; sctx.setLineDash([4,4]);
+  sctx.beginPath(); sctx.moveTo(X(mu),a.T); sctx.lineTo(X(mu),a.y0); sctx.stroke();
+  sctx.setLineDash([]);
+
+  sctx.fillStyle='#222'; sctx.font='13px Calibri, Arial'; sctx.textAlign='left';
+  sctx.fillText('n = '+n+'     σ/√n = '+se.toFixed(3),a.x0+8,a.T+18);
+}
+function updateStats() {
+  const {mu,sigma}=populationStats();
+  const n=+nSlider.value;
+  muEl.textContent=mu.toFixed(2);
+  sigmaEl.textContent=sigma.toFixed(2);
+  seEl.textContent=(sigma/Math.sqrt(n)).toFixed(3);
+  nVal.textContent=n;
+  repsVal.textContent=repsSlider.value;
+}
+function redraw() {
+  updateStats();
+  plotPopulation();
+  plotSampling();
+}
+function updateN() {
+  // Resample so the shape visibly responds to n.
+  currentSamples=makeSamples();
+  redraw();
+}
+popSelect.addEventListener('change',()=>{
+  populationType=popSelect.value;
+  currentSamples=makeSamples();
+  redraw();
+});
+nSlider.addEventListener('input',updateN);
+repsSlider.addEventListener('input',()=>{
+  repsVal.textContent=repsSlider.value;
+});
+document.getElementById('resample').addEventListener('click',()=>{
+  currentSamples=makeSamples();
+  redraw();
+});
+window.addEventListener('resize',()=>{
+  resizeCanvas(popCanvas); resizeCanvas(sampleCanvas); redraw();
+});
+
+resizeCanvas(popCanvas); resizeCanvas(sampleCanvas);
+currentSamples=makeSamples();
+redraw();
+</script>
+
+<div class="below">
+  <div class="below-section">
+    <h2>Central Limit Theorem (CLT)</h2>
+    <div class="below-section bigidea" style="border:0;padding:0;margin:0">
+      When independent random samples of size <em>n</em> are repeatedly drawn from a population with a finite mean μ and finite variance σ², the sampling distribution of the <strong>sample mean</strong> becomes approximately Gaussian as <em>n</em> becomes large — even when the population itself is not Gaussian.
+      <br><br>
+      If the population <em>is</em> Gaussian, the sampling distribution of the sample mean is Gaussian <strong>for every sample size</strong>.
+    </div>
+  </div>
+
+  <div class="below-section bigidea">
+    <strong>What the CLT is saying:</strong><br>
+    The population does not have to be Gaussian. What becomes approximately Gaussian is the <strong>sampling distribution of the sample mean</strong> as the sample size increases.
+    <br><br>
+    <strong>Notice the distinction:</strong> “What does the population look like?” versus “What does the distribution of x̄ look like after repeated sampling?”
+  </div>
+
+  <div class="below-section">
+    <h2>Try this</h2>
+    <ol>
+      <li>Choose the Normal population. Compare n = 5 and n = 30. Does the Gaussian overlay fit at both sample sizes?</li>
+      <li>Choose the Right-skewed population. Start with n = 5, then try 10, 30 and 50. What happens to the shape of the sampling distribution?</li>
+      <li>Try the Bimodal population. Compare a small and a large n. Does the sampling distribution retain the population's bimodality?</li>
+      <li>For one population, keep n fixed and increase the number of repeated samples. What changes: the underlying sampling distribution, or how clearly you see it?</li>
+      <li>Compare the observed SD of x̄ with σ/√n. How close are they?</li>
+    </ol>
+  </div>
+</div>
+
+</body>
+</html>

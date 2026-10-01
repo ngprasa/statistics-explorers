@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gaussian to Standard Normal Visualizer</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1100px;margin:20px auto;padding:0 16px;color:#222}
+h1{margin:0 0 4px}.sub{color:#666;margin-bottom:16px}.panel{border:1px solid #ddd;border-radius:14px;padding:15px;margin:12px 0}
+.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.card{border:1px solid #ddd;border-radius:10px;padding:12px;background:#fafafa}
+label{display:flex;justify-content:space-between;font-weight:bold;font-size:17px;margin-bottom:8px}input[type=range]{width:100%}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.stat{text-align:center;border:1px solid #ddd;border-radius:9px;padding:8px}
+.k{font-size:16px;color:#666}.v{font-size:22px;font-weight:bold}.plot{border:1px solid #eee;border-radius:10px;overflow:hidden;background:#fff;margin-top:12px}
+svg{display:block;width:100%;height:auto}.note{font-size:13px;color:#666;margin-top:8px}button{border:1px solid #bbb;background:white;border-radius:8px;padding:7px 12px;cursor:pointer}
+@media(max-width:700px){.controls,.stats{grid-template-columns:1fr 1fr}}@media(max-width:500px){.controls,.stats{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<h1>Gaussian → Standard Normal</h1>
+<div class="sub">Choose a Gaussian distribution and a value X. Watch X become its corresponding z-score.</div>
+
+<div class="panel">
+<div class="controls">
+<div class="card"><label>Mean μ <span id="muVal">175.0</span></label><input id="mu" type="range" min="140" max="210" step=".5" value="175"></div>
+<div class="card"><label>Variance σ² <span id="varVal">25.0</span></label><input id="variance" type="range" min="1" max="400" step="1" value="25"></div>
+<div class="card"><label>Value X <span id="xVal">162.0</span></label><input id="x" type="range" min="140" max="210" step=".5" value="162"></div>
+</div>
+<div class="stats">
+<div class="stat"><div class="k">Mean μ</div><div class="v" id="muStat">175.0</div></div>
+<div class="stat"><div class="k">SD σ</div><div class="v" id="sdStat">5.00</div></div>
+<div class="stat"><div class="k">X</div><div class="v" id="xStat">162.0</div></div>
+<div class="stat"><div class="k">z = (X−μ)/σ</div><div class="v" id="zStat">−2.60</div></div>
+</div>
+<div class="plot"><svg id="plot" viewBox="0 0 1100 520"></svg></div>
+<div class="note">The vertical X and z lines extend through their entire respective panels. Only the corresponding right-tail area is shaded on the standard normal.</div>
+</div>
+
+<div class="panel"><button id="reset">↺ Reset</button></div>
+
+<script>
+(()=>{const $=id=>document.getElementById(id);
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911,t=1/(1+p*x);return s*(1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)))}
+function Phi(z){return .5*(1+erf(z/Math.sqrt(2)))}
+function pdf(x,m,s){return Math.exp(-.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI))}
+function draw(){
+let mu=+$("mu").value,v=+$("variance").value,sd=Math.sqrt(v),x=+$("x").value,z=(x-mu)/sd;
+let W=1100,H=520,gap=70,ML=65,MR=35,pw=(W-gap-ML-MR)/2,T=55,B=65,ph=350;
+let left=ML,right=ML+pw+gap,xmin=140,xmax=210,zmin=-4,zmax=4;
+let X=a=>left+(a-xmin)/(xmax-xmin)*pw,Z=a=>right+(a-zmin)/(zmax-zmin)*pw;
+let ymax=.09,yN=y=>T+ph-(y/ymax)*ph,yS=y=>T+ph-(y/(1/Math.sqrt(2*Math.PI)))*ph;
+let base=T+ph,out='<rect width="1100" height="520" fill="white"/>';
+
+out+=`<text x="${left+pw/2}" y="28" text-anchor="middle" font-size="19" font-weight="bold">Gaussian distribution</text>
+<text x="${right+pw/2}" y="28" text-anchor="middle" font-size="19" font-weight="bold">Standard normal distribution</text>`;
+
+out+=`<line x1="${left}" y1="${base}" x2="${left+pw}" y2="${base}" stroke="#555" stroke-width="1.5"/>
+<line x1="${right}" y1="${base}" x2="${right+pw}" y2="${base}" stroke="#555" stroke-width="1.5"/>`;
+
+let path='';
+for(let i=0;i<=600;i++){let a=xmin+(xmax-xmin)*i/600;path+=(i?'L':'M')+X(a).toFixed(2)+','+yN(pdf(a,mu,sd)).toFixed(2)}
+out+=`<path d="${path}" fill="none" stroke="#3267a8" stroke-width="4"/>`;
+
+path='';
+for(let i=0;i<=600;i++){let a=-4+8*i/600;path+=(i?'L':'M')+Z(a).toFixed(2)+','+yS(Math.exp(-a*a/2)/Math.sqrt(2*Math.PI)).toFixed(2)}
+out+=`<path d="${path}" fill="none" stroke="#7a3e9d" stroke-width="4"/>`;
+
+function fill(map,yfun,a,b,color){
+let d=`M ${map(a)} ${base}`;
+for(let i=0;i<=160;i++){let q=a+(b-a)*i/160;d+=` L ${map(q)} ${yfun(q)}`}
+d+=` L ${map(b)} ${base} Z`;
+return `<path d="${d}" fill="${color}" opacity=".20"/>`;
+}
+let leftP=Phi(z),rightP=1-leftP;
+// No probability-area shading on the Gaussian.
+// Standard normal: construct the right-hand area explicitly.
+// It starts on the Z axis at z, follows the normal curve to +4,
+// and returns horizontally along the Z axis. Nothing is drawn below it.
+const zz=Math.max(-4,Math.min(4,z));
+let stdArea=`M ${Z(zz).toFixed(2)} ${base.toFixed(2)}`;
+for(let i=0;i<=400;i++){
+  const t=i/400;
+  const q=zz+(4-zz)*t;
+  const density=Math.exp(-q*q/2)/Math.sqrt(2*Math.PI);
+  stdArea+=` L ${Z(q).toFixed(2)} ${yS(density).toFixed(2)}`;
+}
+stdArea+=` L ${Z(4).toFixed(2)} ${base.toFixed(2)} Z`;
+out+=`<path d="${stdArea}" fill="#d59b00" opacity=".20" fill-rule="nonzero"/>`;
+
+let px=X(x),pz=Z(z);
+// Full-height marker lines
+out+=`<line x1="${px}" y1="${T}" x2="${px}" y2="${base}" stroke="#222" stroke-width="3"/>
+<line x1="${pz}" y1="${T}" x2="${pz}" y2="${base}" stroke="#222" stroke-width="3"/>`;
+
+out+=`<text x="${px}" y="${base+48}" text-anchor="middle" font-size="14" font-weight="bold">X = ${x.toFixed(1)}</text>
+<text x="${pz}" y="${base+48}" text-anchor="middle" font-size="14" font-weight="bold">z = ${z.toFixed(2)}</text>`;
+
+out+=`<text x="${(pz+right+pw)/2}" y="${base-28}" text-anchor="middle" font-size="13" font-weight="bold" fill="#9a7100">P(Z ≥ z) = ${rightP.toFixed(4)}</text>`;
+
+// Mean and zero markers
+out+=`<line x1="${X(mu)}" y1="${base}" x2="${X(mu)}" y2="${base-12}" stroke="#555" stroke-width="2"/>
+<text x="${X(mu)}" y="${base+20}" text-anchor="middle" font-size="11">μ</text>
+<line x1="${Z(0)}" y1="${base}" x2="${Z(0)}" y2="${base-12}" stroke="#555" stroke-width="2"/>
+<text x="${Z(0)}" y="${base+20}" text-anchor="middle" font-size="11">0</text>`;
+
+// Strong visual bridge between X and z
+out+=`<path d="M ${px} ${base+10} C ${px+40} ${base+45}, ${pz-40} ${base+45}, ${pz} ${base+10}"
+fill="none" stroke="#d59b00" stroke-width="2.5" stroke-dasharray="8 6"/>
+<text x="${W/2}" y="${H-18}" text-anchor="middle" font-size="16" font-weight="bold" fill="#9a7100">z = (X − μ) / σ</text>`;
+
+for(let a=140;a<=210;a+=10)out+=`<line x1="${X(a)}" y1="${base}" x2="${X(a)}" y2="${base+6}" stroke="#555"/><text x="${X(a)}" y="${base+20}" text-anchor="middle" font-size="10">${a}</text>`;
+for(let a=-4;a<=4;a++)out+=`<line x1="${Z(a)}" y1="${base}" x2="${Z(a)}" y2="${base+6}" stroke="#555"/><text x="${Z(a)}" y="${base+20}" text-anchor="middle" font-size="10">${a}</text>`;
+
+$("plot").innerHTML=out;
+$("muVal").textContent=mu.toFixed(1);$("varVal").textContent=v.toFixed(1);$("xVal").textContent=x.toFixed(1);
+$("muStat").textContent=mu.toFixed(1);$("sdStat").textContent=sd.toFixed(2);$("xStat").textContent=x.toFixed(1);$("zStat").textContent=z.toFixed(2);
+}
+["mu","variance","x"].forEach(id=>$(id).addEventListener("input",draw));
+$("reset").onclick=()=>{$("mu").value=175;$("variance").value=25;$("x").value=162;draw()};draw();
+})();
+</script></body></html>

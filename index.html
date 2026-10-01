@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statistics Explorers</title>
+<style>
+:root{--ink:#222;--muted:#666;--line:#d9d9d9;--paper:#fff;--soft:#f5f5f3;--accent:#3f5f4a}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f4f1;color:var(--ink);font-family:Calibri,"Helvetica Neue",Arial,sans-serif;line-height:1.45}
+.wrap{max-width:1080px;margin:0 auto;padding:48px 28px 60px}
+header{border-bottom:1px solid var(--line);padding-bottom:30px;margin-bottom:36px}
+h1{font-size:42px;line-height:1.05;margin:0 0 12px;font-weight:600;letter-spacing:-.5px}
+.subtitle{font-size:18px;color:var(--muted);max-width:760px}
+.intro{margin-top:20px;max-width:820px;font-size:15px;color:#444}
+.section{margin:34px 0 0}
+h2{font-size:22px;font-weight:600;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+a.card{text-decoration:none;color:inherit;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:17px 18px;min-height:78px;display:flex;align-items:center;transition:.12s ease}
+a.card:hover{border-color:#999;transform:translateY(-1px);box-shadow:0 3px 12px #0000000d}
+.num{font-size:12px;color:#888;width:30px;flex:0 0 30px}.name{font-size:16px;font-weight:600}.note{font-size:12px;color:var(--muted);margin-top:2px}
+.about{margin-top:44px;padding-top:28px;border-top:1px solid var(--line);max-width:850px}
+.about h2{margin-bottom:8px}.about p{color:#444;margin:7px 0}
+.badge{display:inline-block;margin-top:12px;border:1px solid #bbb;border-radius:999px;padding:5px 10px;font-size:12px;color:#555;background:#fafafa}
+footer{margin-top:42px;color:#777;font-size:13px}
+@media(max-width:600px){.wrap{padding:32px 18px 45px}h1{font-size:34px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Statistics Explorers</h1>
+<div class="subtitle">Interactive demonstrations for exploring probability, sampling, estimation, and statistical inference.</div>
+<p class="intro">Choose a topic below. Each demonstration is a self-contained interactive tool: change the parameters, experiment, and see how the statistical idea responds.</p>
+</header>
+
+<section class="section">
+<h2>Probability Distributions</h2>
+<div class="grid">
+
+</div></section>
+
+<section class="section">
+<h2>Sampling &amp; Estimation</h2>
+<div class="grid">
+<a class="card" href="8_Sampling_Distributions.html"><span class="num">08</span><span><div class="name">Sampling Distributions</div><div class="note">What happens to a statistic under repeated sampling?</div></span></a>
+<a class="card" href="Sampling_Distribution_of_Variance_Demo(5).html"><span class="num">09</span><span><div class="name">Sampling Distribution of Sample Variance</div><div class="note">Sample variance and its chi-square connection</div></span></a>
+<a class="card" href="9_Properties_of_Estimators.html"><span class="num">10</span><span><div class="name">Properties of Estimators</div><div class="note">Bias, variance, efficiency and consistency</div></span></a>
+<a class="card" href="CLT_Interactive_Demo_v3.html"><span class="num">11</span><span><div class="name">Central Limit Theorem</div><div class="note">Why sampling means become approximately normal</div></span></a>
+</div></section>
+
+<section class="section">
+<h2>Statistical Inference</h2>
+<div class="grid">
+<a class="card" href="t_Distribution_Demo.html"><span class="num">12</span><span><div class="name">Student's t Distribution</div><div class="note">Unknown population standard deviation</div></span></a>
+
+<a class="card" href="Difference_Between_Two_Means.html"><span class="num">14</span><span><div class="name">Difference Between Two Means</div><div class="note">Z and t through repeated sampling</div></span></a>
+<a class="card" href="Confidence_Intervals_Dynamic_Demo_with_CI_Properties_FINAL12.html"><span class="num">15</span><span><div class="name">Confidence Intervals</div><div class="note">Mean and variance intervals through repeated sampling</div></span></a>
+<a class="card" href="Alpha_Beta_and_Power.html"><span class="num">16</span><span><div class="name">Alpha, Beta &amp; Power</div><div class="note">Errors, rejection regions and power</div></span></a>
+<a class="card" href="Tests_for_a_Mean_Repeated_Sampling.html"><span class="num">17</span><span><div class="name">Tests for a Mean</div><div class="note">Reject / do not reject across repeated samples</div></span></a>
+<a class="card" href="CI_Difference_Between_Two_Means_Dynamic_Demo_with_Zero_Line.html"><span class="num">18</span><span><div class="name">Confidence Interval for Difference Between Two Means</div><div class="note">Repeated confidence intervals for a difference</div></span></a>
+</div></section>
+
+<section class="about">
+<h2>About these demonstrations</h2>
+<p>These interactive demonstrations were developed for teaching and learning statistics with the assistance of artificial intelligence. They have been reviewed, tested, and refined for academic use.</p>
+<p>They are freely available for non-commercial academic and educational purposes. Please feel free to share the link with students and colleagues.</p>
+<span class="badge">AI-assisted · Human-reviewed and tested</span>
+<p style="margin-top:18px"><strong>N. G. Prasad</strong><br>IISER Mohali</p>
+</section>
+
+<footer>Statistics Explorers · Interactive demonstrations for teaching statistics</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Properties of Estimators — Interactive Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #f7f7f7; color: #111;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .wrap { max-width: 1450px; margin: auto; padding: 18px 24px 24px; }
+  h1 { margin: 0; font-size: 30px; font-weight: 700; }
+  .subtitle { margin: 5px 0 15px; color: #555; font-size: 16px; }
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tab {
+    border:1px solid #bbb; background:white; padding:10px 18px;
+    border-radius:7px; cursor:pointer; font-size:15px;
+  }
+  .tab.active { background:#111; color:white; border-color:#111; }
+  .tab.inactive { background:#e5e5e5; color:#777; border-color:#ccc; }
+  .tab.inactive:hover { background:#dcdcdc; color:#555; }
+  .panel {
+    background:white; border:1px solid #d0d0d0; border-radius:10px;
+    padding:15px; margin-bottom:14px;
+  }
+  .controls {
+    display:grid; grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap:14px; align-items:end;
+  }
+  label { display:block; font-size:13px; color:#555; margin-bottom:5px; }
+  input[type=range] { width:100%; }
+  select, button {
+    font: inherit; padding:8px 10px; border:1px solid #aaa;
+    border-radius:6px; background:white;
+  }
+  button { cursor:pointer; background:#111; color:white; border-color:#111; }
+  button.secondary { background:white; color:#111; }
+  .value { font-weight:700; font-size:15px; }
+  .charts {
+    display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;
+  }
+  .chartbox { border:1px solid #ddd; border-radius:8px; padding:8px; }
+  canvas { width:100%; height:300px; display:block; }
+  .stats {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;
+  }
+  .stat { background:#fafafa; border:1px solid #ddd; padding:10px; border-radius:7px; }
+  .stat .big { font-size:20px; font-weight:700; }
+  .note { font-size:13px; color:#555; line-height:1.45; }
+  .takeaway {
+    border-left:4px solid #111; padding:9px 12px; margin-top:12px;
+    background:#fafafa; font-size:16px; line-height:1.45;
+  }
+  .sectionTitle {
+    font-size:18px; margin:16px 0 8px; padding-top:4px;
+  }
+  .smallNote {
+    display:block; color:#666; font-size:13px; font-weight:normal;
+    margin-top:4px;
+  }
+  .consistencyCharts canvas { height:250px; }
+  .varianceCharts canvas { height:300px; }
+  .consistencyLegend {
+    display:flex; gap:20px; flex-wrap:wrap; align-items:center;
+    font-size:13px; color:#555; margin:5px 0 6px;
+  }
+  .legendLine { display:inline-block; width:22px; border-top:2px solid #888; margin-right:6px; vertical-align:middle; }
+  .legendRef { display:inline-block; width:22px; border-top:2px solid #111; margin-right:6px; vertical-align:middle; }
+  .formula { font-size:21px; margin:4px 0 12px; }
+  .hidden { display:none; }
+  .inactive-section { display:none; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:13px; margin:7px 0; }
+  .emptyNote { text-align:center; color:#999; font-size:14px; margin-top:-165px; height:165px; pointer-events:none; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; }
+  .black { background:#111; } .gray { background:#777; } .light { background:#bbb; }
+  .question {
+    font-size:19px; font-weight:700; margin:0 0 9px;
+  }
+  .quiz button { margin:4px 5px 4px 0; }
+  .feedback { margin-top:8px; font-weight:700; min-height:22px; }
+  @media(max-width:1000px){
+    .charts { grid-template-columns:1fr; }
+    .controls { grid-template-columns:1fr 1fr; }
+  }
+  @media(max-width:600px){
+    .controls { grid-template-columns:1fr; }
+    .stats { grid-template-columns:1fr; }
+    .wrap { padding:12px; }
+  }
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<div class="wrap">
+  <h1>Properties of Estimators</h1>
+  <div class="subtitle">Population → random sample → estimator → sampling distribution</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab(1)">1. Estimating μ</button>
+    <button class="tab" onclick="showTab(2)">2. Estimating σ²</button>
+ </div>
+
+  <section id="tab1">
+    <div class="panel">
+      <div class="formula">Population: X ~ Normal(μ = 50, σ = 10)</div>
+      <div class="controls">
+        <div>
+          <label>Sample size, n <span class="value" id="n1v">10</span></label>
+          <input id="n1" type="range" min="2" max="100" value="10" oninput="document.getElementById('n1v').textContent=this.value">
+       </div>
+        <div>
+          <label>Number of samples <span class="value" id="reps1v">5000</span></label>
+          <input id="reps1" type="range" min="500" max="10000" step="500" value="5000" oninput="document.getElementById('reps1v').textContent=this.value">
+       </div>
+        <div>
+          <label>Show</label>
+          <select id="estimatorSelect">
+            <option value="all">All three estimators</option>
+            <option value="mean">Sample mean only</option>
+            <option value="middleNumber">Middle number only</option>
+            <option value="first">First observation only</option>
+         </select>
+       </div>
+        <div>
+          <button onclick="runCase1()">Generate sampling distributions</button>
+       </div>
+     </div>
+      <div class="legend">
+        <span><i class="dot black"></i>Sample mean</span>
+        <span><i class="dot gray"></i>Middle number</span>
+        <span><i class="dot light"></i>First observation</span>
+        <span>Vertical line = true μ = 50</span>
+     </div>
+      <div class="smallNote"><b>Middle number:</b> arrange the observations in order and take the middle observation (or the average of the two middle observations when n is even).</div>
+   </div>
+
+    <div class="charts">
+      <div class="chartbox"><canvas id="cmean"></canvas><div class="emptyNote" id="emptyMean">Sampling distribution will appear here</div></div>
+      <div class="chartbox"><canvas id="cmiddleNumber"></canvas><div class="emptyNote" id="emptyMiddleNumber">Sampling distribution will appear here</div></div>
+      <div class="chartbox"><canvas id="cfirst"></canvas><div class="emptyNote" id="emptyFirst">Sampling distribution will appear here</div></div>
+   </div>
+
+    <div class="stats">
+      <div class="stat"><div>Sample mean</div><div class="big" id="smean">—</div><div class="note" id="smean2">—</div></div>
+      <div class="stat"><div>Middle number</div><div class="big" id="smed">—</div><div class="note" id="smed2">—</div></div>
+      <div class="stat"><div>First observation</div><div class="big" id="sfirst">—</div><div class="note" id="sfirst2">—</div></div>
+   </div>
+
+    <div class="sectionTitle">
+      <b>Consistency</b>: As <i>n</i> increases, do individual estimates get closer and closer to the true parameter?
+      <span class="smallNote">Each line represents <b>one sample growing larger</b> as observations are added. The horizontal reference line marks the true μ = 50. Twenty independent samples are shown.</span>
+   </div>
+    <div class="consistencyLegend">
+      <span><i class="legendLine"></i>One growing sample: estimate plotted against sample size</span>
+      <span><i class="legendRef"></i>True μ = 50</span>
+   </div>
+    <div class="charts consistencyCharts">
+      <div class="chartbox"><canvas id="kmean"></canvas><div class="emptyNote">Generate the distributions above first</div></div>
+      <div class="chartbox"><canvas id="kmiddleNumber"></canvas><div class="emptyNote">Generate the distributions above first</div></div>
+      <div class="chartbox"><canvas id="kfirst"></canvas><div class="emptyNote">Generate the distributions above first</div></div>
+   </div>
+    <div class="takeaway">
+      <b>Unbiasedness:</b> Is the sampling distribution centred on the parameter?<br>
+      <b>Efficiency:</b> Among comparable unbiased estimators, which sampling distribution is narrower?<br>
+      <b>Consistency:</b> As the sample size of an individual sample increases, does the estimate converge toward the true parameter?
+      <div class="smallNote">In repeated sampling, consistency appears as the sampling distribution becoming increasingly concentrated around the true parameter.</div>
+   </div>
+ </section>
+
+  <section id="tab2" class="hidden">
+    <div class="panel">
+      <div class="formula">Population: X ~ Normal(μ = 50, σ² = 100)</div>
+      <div class="controls">
+        <div>
+          <label>Sample size, n <span class="value" id="n2v">5</span></label>
+          <input id="n2" type="range" min="2" max="100" value="5" oninput="document.getElementById('n2v').textContent=this.value">
+       </div>
+        <div>
+          <label>Number of samples <span class="value" id="reps2v">5000</span></label>
+          <input id="reps2" type="range" min="500" max="10000" step="500" value="5000" oninput="document.getElementById('reps2v').textContent=this.value">
+       </div>
+        <div>
+          <label>Estimator</label>
+          <select id="varSelect">
+            <option value="both">Both estimators</option>
+            <option value="n">Denominator n</option>
+            <option value="n1">Denominator n − 1</option>
+         </select>
+       </div>
+        <div>
+          <button onclick="runCase2()">Generate sampling distributions</button>
+       </div>
+     </div>
+      <div class="legend">
+        <span><i class="dot black"></i>1/n estimator</span>
+        <span><i class="dot gray"></i>1/(n−1) estimator</span>
+        <span>Vertical line = true σ² = 100</span>
+     </div>
+   </div>
+
+    <div class="charts varianceCharts">
+      <div class="chartbox"><canvas id="cvarN"></canvas><div class="emptyNote" id="emptyVarN">Sampling distribution will appear here</div></div>
+      <div class="chartbox"><canvas id="cvarN1"></canvas><div class="emptyNote" id="emptyVarN1">Sampling distribution will appear here</div></div>
+   </div>
+
+    <div class="stats">
+      <div class="stat"><div>Denominator n</div><div class="big" id="svn">—</div><div class="note" id="svn2">—</div></div>
+      <div class="stat"><div>Denominator n − 1</div><div class="big" id="svn1">—</div><div class="note" id="svn12">—</div></div>
+      <div class="stat"><div>True variance</div><div class="big">100</div><div class="note">Population σ²</div></div>
+   </div>
+
+    <div class="takeaway">
+      <b>The surprise:</b> the estimator using denominator n is biased downward, but as n increases its sampling distribution moves toward σ².
+      Both estimators are <b>consistent</b>; only the n−1 estimator is unbiased.
+   </div>
+    <div class="sectionTitle">
+      <b>Consistency</b>: As <i>n</i> increases, do individual estimates get closer and closer to the true σ²?
+      <span class="smallNote">Each line represents <b>one sample growing larger</b> as observations are added. The horizontal reference line marks the true σ² = 100. Twenty independent samples are shown.</span>
+    </div>
+    <div class="consistencyLegend">
+      <span><i class="legendLine"></i>One growing sample: estimate plotted against sample size</span>
+      <span><i class="legendRef"></i>True σ² = 100</span>
+    </div>
+    <div class="charts consistencyCharts">
+      <div class="chartbox"><canvas id="kvarN"></canvas><div class="emptyNote">Generate the distributions above first</div></div>
+      <div class="chartbox"><canvas id="kvarN1"></canvas><div class="emptyNote">Generate the distributions above first</div></div>
+    </div>
+    <div class="takeaway">
+      <b>Consistency:</b> Both estimators converge toward the true variance as the sample size increases.
+      The estimator with denominator <i>n</i> is biased for finite samples, but its bias disappears as <i>n</i> becomes large.
+    </div>
+ </section>
+
+  <div class="panel quiz">
+    <p class="question">Quick check: Which statement is true?</p>
+    <button class="secondary" onclick="quiz(1)">An unbiased estimator must be consistent.</button>
+    <button class="secondary" onclick="quiz(2)">A biased estimator cannot be consistent.</button>
+    <button class="secondary" onclick="quiz(3)">Two unbiased estimators can have different efficiency.</button>
+    <button class="secondary" onclick="quiz(4)">If an estimator is unbiased, its sampling distribution must be narrow.</button>
+    <div class="feedback" id="feedback"></div>
+ </div>
+</div>
+
+<script>
+const MU=50, SIG=10, VAR=100;
+
+function randn(){
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function sample(n){
+  let a=[]; for(let i=0;i<n;i++) a.push(MU+SIG*randn()); return a;
+}
+function mean(a){return a.reduce((x,y)=>x+y,0)/a.length;}
+function median(a){
+  let b=[...a].sort((x,y)=>x-y), m=Math.floor(b.length/2);
+  return b.length%2 ? b[m] : (b[m-1]+b[m])/2;
+}
+function varianceN(a){
+  let m=mean(a); return a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length;
+}
+function varianceN1(a){
+  let m=mean(a); return a.reduce((s,x)=>s+(x-m)*(x-m),0)/(a.length-1);
+}
+function summarize(a, trueVal){
+  let m=mean(a), v=a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length;
+  return {mean:m, sd:Math.sqrt(v), bias:m-trueVal};
+}
+function drawHist(canvasId, data, trueVal, title, visible=true, densityScale=1, sharedLo=null, sharedHi=null){
+  const c=document.getElementById(canvasId), ctx=c.getContext('2d');
+  const W=c.width=c.clientWidth*2, H=c.height=c.clientHeight*2;
+  ctx.clearRect(0,0,W,H); ctx.scale(2,2);
+  const w=c.clientWidth, h=c.clientHeight;
+  if(!visible){ ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);return; }
+  const pad={l:45,r:12,t:35,b:35};
+  let lo = sharedLo !== null ? sharedLo : Math.min(...data);
+  let hi = sharedHi !== null ? sharedHi : Math.max(...data);
+  const range=Math.max(hi-lo,1);
+  if(sharedLo === null || sharedHi === null){ lo-=.08*range; hi+=.08*range; }
+  const bins=35, counts=Array(bins).fill(0);
+  data.forEach(x=>{let k=Math.floor((x-lo)/(hi-lo)*bins); if(k<0)k=0;if(k>=bins)k=bins-1;counts[k]++;});
+  const maxc=Math.max(...counts);
+  const x=p=>pad.l+(p-lo)/(hi-lo)*(w-pad.l-pad.r);
+  const y=p=>h-pad.b-p/maxc*(h-pad.t-pad.b);
+  ctx.strokeStyle="#bbb";ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+  for(let i=0;i<bins;i++){
+    let x0=pad.l+i*(w-pad.l-pad.r)/bins;
+    let bw=(w-pad.l-pad.r)/bins-1;
+    let bh=(h-pad.b)-y(counts[i]);
+    ctx.fillStyle="#777"; ctx.fillRect(x0,y(counts[i]),bw,bh);
+  }
+  ctx.strokeStyle="#111";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x(trueVal),pad.t);ctx.lineTo(x(trueVal),h-pad.b);ctx.stroke();
+  ctx.fillStyle="#111";ctx.font="bold 14px Arial";ctx.fillText(title,pad.l,20);
+  ctx.font="12px Arial";ctx.fillText(lo.toFixed(1),pad.l,h-12);
+  ctx.fillText(hi.toFixed(1),w-pad.r-35,h-12);
+  ctx.fillText("true value",Math.min(Math.max(x(trueVal)-25,pad.l),w-65),pad.t+13);
+}
+function setStats(prefix, data, trueVal){
+  const s=summarize(data,trueVal);
+  document.getElementById(prefix).textContent="Mean = "+s.mean.toFixed(2);
+  document.getElementById(prefix+"2").textContent="SD = "+s.sd.toFixed(2)+"   |   Bias = "+s.bias.toFixed(2);
+}
+function runCase1(){
+  document.querySelectorAll("#tab1 .emptyNote").forEach(e=>e.style.display="none");
+  const n=+document.getElementById("n1").value, reps=+document.getElementById("reps1").value;
+  const sel=document.getElementById("estimatorSelect").value;
+  let a=[],b=[],d=[];
+  for(let r=0;r<reps;r++){
+    const s=sample(n); a.push(mean(s)); b.push(median(s)); d.push(s[0]);
+  }
+  // Use exactly the same x-axis limits for all three estimators.
+  // This makes the relative spread immediately visible.
+  const sharedLo = MU - 4*SIG;
+  const sharedHi = MU + 4*SIG;
+  drawHist("cmean",a,MU,"Sample mean",sel==="all"||sel==="mean",1,sharedLo,sharedHi);
+  drawHist("cmiddleNumber",b,MU,"Middle number",sel==="all"||sel==="middleNumber",1,sharedLo,sharedHi);
+  drawHist("cfirst",d,MU,"First observation",sel==="all"||sel==="first",1,sharedLo,sharedHi);
+  setStats("smean",a,MU); setStats("smed",b,MU); setStats("sfirst",d,MU);
+  generateConsistencySeries(100);
+}
+
+function drawConsistency(canvasId, trajectories, trueVal, title){
+  const c=document.getElementById(canvasId);
+  if(!c) return;
+  const ctx=c.getContext("2d");
+  const w=c.clientWidth || 450, h=c.clientHeight || 250;
+  c.width=w*2; c.height=h*2;
+  ctx.setTransform(2,0,0,2,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  const p={l:48,r:15,t:38,b:38};
+  const xMin=2,xMax=100,yMin=20,yMax=80;
+  const X=x=>p.l+(x-xMin)/(xMax-xMin)*(w-p.l-p.r);
+  const Y=y=>h-p.b-(y-yMin)/(yMax-yMin)*(h-p.t-p.b);
+
+  // True parameter reference.
+  ctx.strokeStyle="#111";
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(p.l,Y(trueVal));
+  ctx.lineTo(w-p.r,Y(trueVal));
+  ctx.stroke();
+
+  // Axes.
+  ctx.strokeStyle="#bbb";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(p.l,h-p.b);
+  ctx.lineTo(w-p.r,h-p.b);
+  ctx.moveTo(p.l,p.t);
+  ctx.lineTo(p.l,h-p.b);
+  ctx.stroke();
+
+  // One line = one sample growing as observations are added.
+  ctx.strokeStyle="#888";
+  ctx.lineWidth=0.8;
+  trajectories.forEach(traj=>{
+    ctx.beginPath();
+    traj.forEach((pt,j)=>{
+      const xx=X(pt.n), yy=Y(pt.value);
+      if(j===0) ctx.moveTo(xx,yy);
+      else ctx.lineTo(xx,yy);
+    });
+    ctx.stroke();
+  });
+
+  ctx.fillStyle="#111";
+  ctx.font="bold 14px Arial";
+  ctx.fillText(title,p.l,20);
+  ctx.font="12px Arial";
+  ctx.fillText("sample size, n",w/2-35,h-10);
+  [2,50,100].forEach(v=>{
+    ctx.fillText(v,X(v)-7,h-20);
+  });
+  [20,50,80].forEach(v=>{
+    ctx.fillText(v,p.l-28,Y(v)+4);
+  });
+  ctx.fillText("true μ = 50",w-p.r-63,Y(trueVal)-6);
+}
+
+function generateConsistencySeries(nMax=100){
+  const ns=[];
+  for(let n=2;n<=nMax;n+=2) ns.push(n);
+
+  const meanTraj=[], middleNumberTraj=[], firstTraj=[];
+  const trajectories=20;
+
+  for(let r=0;r<trajectories;r++){
+    // One long sequence per trajectory: the sample genuinely grows as n grows.
+    const seq=[];
+    for(let i=0;i<nMax;i++) seq.push(MU+SIG*randn());
+
+    let mt=[], md=[], ft=[];
+    ns.forEach(n=>{
+      const s=seq.slice(0,n);
+      mt.push({n:n,value:mean(s)});
+      md.push({n:n,value:median(s)});
+      ft.push({n:n,value:seq[0]});
+    });
+    meanTraj.push(mt);
+    middleNumberTraj.push(md);
+    firstTraj.push(ft);
+  }
+
+  drawConsistency("kmean",meanTraj,MU,"Sample mean");
+  drawConsistency("kmiddleNumber",middleNumberTraj,MU,"Middle number");
+  drawConsistency("kfirst",firstTraj,MU,"First observation");
+}
+
+function drawVarianceHist(canvasId, data, trueVal, title, visible=true){
+  const c=document.getElementById(canvasId);
+  if(!c) return;
+  const ctx=c.getContext("2d");
+  const cssW=c.clientWidth || 500;
+  const cssH=c.clientHeight || 300;
+  c.width=cssW*2;
+  c.height=cssH*2;
+  ctx.setTransform(2,0,0,2,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  if(!visible) return;
+
+  const w=cssW, h=cssH;
+  const p={l:50,r:15,t:38,b:38};
+
+  // Identical x-axis in both panels.
+  const lo=0, hi=220, bins=40;
+  const X=z=>p.l+(z-lo)/(hi-lo)*(w-p.l-p.r);
+  const counts=Array(bins).fill(0);
+
+  data.forEach(z=>{
+    if(Number.isFinite(z)){
+      let k=Math.floor((z-lo)/(hi-lo)*bins);
+      if(k>=0 && k<bins) counts[Math.max(0,Math.min(bins-1,k))]++;
+    }
+  });
+
+  const mx=Math.max(...counts,1);
+  const Y=z=>h-p.b-z/mx*(h-p.t-p.b);
+
+  ctx.strokeStyle="#bbb";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(p.l,h-p.b);
+  ctx.lineTo(w-p.r,h-p.b);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(p.l,p.t);
+  ctx.lineTo(p.l,h-p.b);
+  ctx.stroke();
+
+  for(let i=0;i<bins;i++){
+    const x=p.l+i*(w-p.l-p.r)/bins;
+    const bw=(w-p.l-p.r)/bins-1;
+    ctx.fillStyle="#777";
+    ctx.fillRect(x,Y(counts[i]),bw,h-p.b-Y(counts[i]));
+  }
+
+  ctx.strokeStyle="#111";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(X(trueVal),p.t);
+  ctx.lineTo(X(trueVal),h-p.b);
+  ctx.stroke();
+
+  ctx.fillStyle="#111";
+  ctx.font="bold 14px Arial";
+  ctx.fillText(title,p.l,20);
+
+  ctx.font="12px Arial";
+  [0,50,100,150,200].forEach(v=>{
+    ctx.fillText(v,p.l+(v-lo)/(hi-lo)*(w-p.l-p.r)-7,h-18);
+  });
+  ctx.fillText("true σ² = 100",
+    Math.min(w-80,Math.max(p.l+5,X(trueVal)+5)),p.t+14);
+}
+
+
+function drawVarianceConsistency(canvasId, trajectories, trueVal, title){
+  const c=document.getElementById(canvasId);
+  if(!c) return;
+  const ctx=c.getContext("2d");
+  const w=c.clientWidth || 500, h=c.clientHeight || 250;
+  c.width=w*2; c.height=h*2;
+  ctx.setTransform(2,0,0,2,0,0);
+  ctx.clearRect(0,0,w,h);
+  const p={l:50,r:15,t:38,b:38};
+  const xMin=2,xMax=100,yMin=0,yMax=180;
+  const X=x=>p.l+(x-xMin)/(xMax-xMin)*(w-p.l-p.r);
+  const Y=y=>h-p.b-(y-yMin)/(yMax-yMin)*(h-p.t-p.b);
+
+  ctx.strokeStyle="#111"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(p.l,Y(trueVal)); ctx.lineTo(w-p.r,Y(trueVal)); ctx.stroke();
+
+  ctx.strokeStyle="#bbb"; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(p.l,h-p.b); ctx.lineTo(w-p.r,h-p.b);
+  ctx.moveTo(p.l,p.t); ctx.lineTo(p.l,h-p.b); ctx.stroke();
+
+  ctx.strokeStyle="#888"; ctx.lineWidth=0.8;
+  trajectories.forEach(traj=>{
+    ctx.beginPath();
+    traj.forEach((pt,j)=>{
+      const xx=X(pt.n), yy=Y(Math.max(yMin,Math.min(yMax,pt.value)));
+      if(j===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+    });
+    ctx.stroke();
+  });
+
+  ctx.fillStyle="#111"; ctx.font="bold 14px Arial"; ctx.fillText(title,p.l,20);
+  ctx.font="12px Arial"; ctx.fillText("sample size, n",w/2-35,h-10);
+  [2,50,100].forEach(v=>ctx.fillText(v,X(v)-7,h-20));
+  [0,50,100,150].forEach(v=>ctx.fillText(v,p.l-28,Y(v)+4));
+  ctx.fillText("true σ² = 100",Math.max(p.l+5,w-p.r-75),Y(trueVal)-6);
+}
+
+function generateVarianceConsistency(nMax=100){
+  const ns=[];
+  for(let n=2;n<=nMax;n+=2) ns.push(n);
+  const nTraj=[], n1Traj=[];
+  for(let r=0;r<20;r++){
+    const seq=[];
+    for(let i=0;i<nMax;i++) seq.push(MU+SIG*randn());
+    const nt=[], n1t=[];
+    ns.forEach(n=>{
+      const s=seq.slice(0,n);
+      nt.push({n:n,value:varianceN(s)});
+      n1t.push({n:n,value:varianceN1(s)});
+    });
+    nTraj.push(nt); n1Traj.push(n1t);
+  }
+  drawVarianceConsistency("kvarN",nTraj,VAR,"Denominator n");
+  drawVarianceConsistency("kvarN1",n1Traj,VAR,"Denominator n − 1");
+  document.querySelectorAll("#tab2 .consistencyCharts .emptyNote")
+    .forEach(e=>e.style.display="none");
+}
+
+function runCase2(){
+  document.querySelectorAll("#tab2 .emptyNote").forEach(e=>e.style.display="none");
+
+  const n=+document.getElementById("n2").value;
+  const reps=+document.getElementById("reps2").value;
+  const sel=document.getElementById("varSelect").value;
+
+  let a=[], b=[];
+  for(let r=0;r<reps;r++){
+    const s=sample(n);
+    a.push(varianceN(s));
+    b.push(varianceN1(s));
+  }
+
+  drawVarianceHist("cvarN", a, VAR, "Denominator n",
+                   sel==="both" || sel==="n");
+  drawVarianceHist("cvarN1", b, VAR, "Denominator n − 1",
+                   sel==="both" || sel==="n1");
+
+  setStats("svn",a,VAR);
+  setStats("svn1",b,VAR);
+  generateVarianceConsistency(100);
+}
+
+function showTab(k){
+  document.getElementById("tab1").classList.toggle("hidden",k!==1);
+  document.getElementById("tab2").classList.toggle("hidden",k!==2);
+  document.querySelectorAll(".tab").forEach((x,i)=>{
+    x.classList.toggle("active",i===k-1);
+    x.classList.toggle("inactive",i!==k-1);
+  });
+}
+function quiz(k){
+  const f=document.getElementById("feedback");
+  if(k===3){f.textContent="Correct! Unbiasedness tells us about centring; efficiency tells us about spread.";}
+  else if(k===1){f.textContent="False. An estimator can be unbiased but inconsistent (e.g. the first observation for μ).";}
+  else if(k===2){f.textContent="False. The n-denominator variance estimator is biased but consistent.";}
+  else {f.textContent="False. An estimator can be unbiased yet very variable.";}
+}
+showTab(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confidence Interval for Difference Between Two Means</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f3f3;color:#222;font-family:Calibri,Arial,sans-serif}
+.app{max-width:1550px;margin:auto;background:#fff;min-height:100vh}
+header{padding:18px 26px 12px;border-bottom:1px solid #bbb}
+h1{margin:0 0 4px;font-size:26px}
+.sub{font-size:14px;color:#555}
+.workspace{display:grid;grid-template-columns:300px minmax(0,1fr)}
+.controls{padding:14px 14px;background:#fafafa;border-right:1px solid #ccc}
+.block{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #ddd}
+.block:last-child{border-bottom:0}
+.blocktitle{font-weight:700;font-size:14px;margin-bottom:9px}
+label{display:block;font-size:12px;font-weight:700;margin:7px 0 4px}
+input,select{width:100%;height:30px;border:1px solid #999;border-radius:4px;background:#fff;padding:4px 6px;font:14px Calibri,Arial}
+input[type=range]{height:20px;padding:0}
+.rangeval{text-align:center;font-size:11px;color:#555}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+button{height:32px;border:1px solid #555;border-radius:4px;background:#fff;font:600 13px Calibri,Arial;cursor:pointer}
+.coverage{margin-top:10px;border:1px solid #888;border-radius:5px;padding:8px;text-align:center}
+.coverage .big{font-size:21px;font-weight:700}.coverage .small{font-size:11px;color:#555}
+.canvasWrap{padding:10px 14px 6px}
+svg{width:100%;display:block;border:1px solid #ccc;background:#fff}
+.note,.formula{padding:8px 22px 14px;font-size:13px;color:#555}
+.formula{border-top:1px solid #ddd;color:#333}
+@media(max-width:950px){.workspace{grid-template-columns:1fr}.controls{border-right:0;border-bottom:1px solid #ccc;display:grid;grid-template-columns:1fr 1fr;gap:10px}.block{margin:0}.block.wide{grid-column:1/-1}.canvasWrap{padding:8px}}
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<div class="app">
+<header>
+<h1>Confidence Interval for the Difference Between Two Means</h1>
+<div class="sub">Two populations → sampling distribution of the difference → sample difference → confidence interval → repeated sampling</div>
+</header>
+
+<div class="workspace">
+<aside class="controls">
+<div class="block">
+<div class="blocktitle">Method</div>
+<select id="method">
+<option value="z">Known σ — Z interval</option>
+<option value="t">Unknown σ — Welch t interval</option>
+</select>
+</div>
+
+<div class="block">
+<div class="blocktitle">Population 1</div>
+<label>Shape</label>
+<select id="shape1"><option value="normal">Normal</option><option value="uniform">Uniform</option><option value="skew">Right-skewed</option><option value="bimodal">Bimodal</option></select>
+<label>Mean μ1</label><input id="mu1" type="number" value="10" step=".5">
+<label>SD σ1</label><input id="sig1" type="number" value="2" min=".2" step=".1">
+<label>Sample size n1</label><input id="n1" type="number" value="25" min="2" max="200">
+</div>
+
+<div class="block">
+<div class="blocktitle">Population 2</div>
+<label>Shape</label>
+<select id="shape2"><option value="normal">Normal</option><option value="uniform">Uniform</option><option value="skew">Right-skewed</option><option value="bimodal">Bimodal</option></select>
+<label>Mean μ2</label><input id="mu2" type="number" value="10" step=".5">
+<label>SD σ2</label><input id="sig2" type="number" value="2" min=".2" step=".1">
+<label>Sample size n2</label><input id="n2" type="number" value="25" min="2" max="200">
+</div>
+
+<div class="block">
+<label>Confidence level: <span id="clLabel">95%</span></label>
+<input id="cl" type="range" min="80" max="99" value="95">
+<div class="rangeval">80% — 99%</div>
+</div>
+
+<div class="block wide">
+<div class="actions">
+<button id="one">Take one sample</button>
+<button id="start">Start sampling (1/sec)</button>
+<button id="stop">Stop sampling</button>
+<button id="clear">Clear</button>
+</div>
+<div class="coverage"><div class="big" id="coverage">—</div><div class="small" id="coverageText">0 intervals shown</div></div>
+</div>
+</aside>
+
+<main class="canvasWrap"><svg id="viz" viewBox="0 0 1400 900"></svg></main>
+</div>
+
+<div class="note" id="note"></div>
+<div class="formula" id="formula"></div>
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg",$=id=>document.getElementById(id),W=1400,H=900,L=95,R=1320;
+let rows=[],seq=0,timer=null;
+
+function E(t,a={},s=""){let e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(s)e.textContent=s;return e}
+function add(t,a,s){ $("viz").appendChild(E(t,a,s)) }
+function ln(x1,y1,x2,y2,a={}){add("line",{x1,y1,x2,y2,...a})}
+function tx(x,y,s,a={}){add("text",{x,y,...a},s)}
+function rr(x,y,w,h,a={}){add("rect",{x,y,width:w,height:h,...a})}
+function path(d,a={}){add("path",{d,...a})}
+function erf(x){let s=x<0?-1:1;x=Math.abs(x);let t=1/(1+.3275911*x);let p=(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t;return s*(1-p*Math.exp(-x*x))}
+function ncdf(x){return .5*(1+erf(x/Math.SQRT2))}
+function invN(p){
+  const a=[-39.6968302866538,220.946098424521,-275.928510446969,138.357751867269,-30.6647980661472,2.50662827745924];
+  const b=[-54.4760987982241,161.585836858041,-155.698979859887,66.8013118877197,-13.2806815528857];
+  const c=[-.00778489400243029,-.322396458041136,-2.40075827716184,-2.54973253934373,4.37466414146497,2.93816398269878];
+  const d=[.00778469570904146,.32246712907004,2.445134137143,3.75440866190742];
+  const pl=.02425,ph=1-pl;
+  if(p<pl){
+    const q=Math.sqrt(-2*Math.log(p));
+    let num=c[0]; num=num*q+c[1]; num=num*q+c[2]; num=num*q+c[3]; num=num*q+c[4]; num=num*q+c[5];
+    let den=d[0]; den=den*q+d[1]; den=den*q+d[2]; den=den*q+d[3]; den=den*q+1;
+    return num/den;
+  }
+  if(p>ph){
+    const q=Math.sqrt(-2*Math.log(1-p));
+    let num=c[0]; num=num*q+c[1]; num=num*q+c[2]; num=num*q+c[3]; num=num*q+c[4]; num=num*q+c[5];
+    let den=d[0]; den=den*q+d[1]; den=den*q+d[2]; den=den*q+d[3]; den=den*q+1;
+    return -num/den;
+  }
+  const q=p-.5,r=q*q;
+  let num=a[0]; num=num*r+a[1]; num=num*r+a[2]; num=num*r+a[3]; num=num*r+a[4]; num=num*r+a[5]; num*=q;
+  let den=b[0]; den=den*r+b[1]; den=den*r+b[2]; den=den*r+b[3]; den=den*r+b[4]; den=den*r+1;
+  return num/den;
+}
+function gln(z){let c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,.001208650973866179,-5.395239384953e-6],x=z,y=x,tmp=x+5.5;tmp-=(x+.5)*Math.log(tmp);let s=1.000000000190015;for(let j=0;j<6;j++){y+=1;s+=c[j]/y}return-tmp+Math.log(2.5066282746310005*s/x)}
+function bc(a,b,x){let M=120,EPS=3e-9,F=1e-30,qab=a+b,qap=a+1,qam=a-1,c=1-qab*x/qap;if(Math.abs(c)<F)c=F;let d=1-qab*x/qap;if(Math.abs(d)<F)d=F;d=1/d;let h=d;for(let m=1;m<=M;m++){let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;h*=d*c;aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<F)d=F;c=1+aa/c;if(Math.abs(c)<F)c=F;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<EPS)break}return h}
+function ib(x,a,b){if(x<=0)return 0;if(x>=1)return 1;let bt=Math.exp(gln(a+b)-gln(a)-gln(b)+a*Math.log(x)+b*Math.log(1-x));return x<(a+1)/(a+b+2)?bt*bc(a,b,x)/a:1-bt*bc(b,a,1-x)/b}
+function tcdf(t,df){if(t===0)return .5;let q=ib(df/(df+t*t),df/2,.5);return t>0?1-.5*q:.5*q}
+function invT(p,df){let lo=-30,hi=30;for(let i=0;i<80;i++){let m=(lo+hi)/2;if(tcdf(m,df)<p)lo=m;else hi=m}return(lo+hi)/2}
+function randn(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function gr(k){let d=k-1/3,c=1/Math.sqrt(9*d);for(;;){let x=randn(),v=1+c*x;if(v<=0)continue;v*=v*v;let u=Math.random();if(u<1-.0331*x*x*x*x)return d*v;if(Math.log(u)<.5*x*x+d*(1-v+Math.log(v)))return d*v}}
+function sample(shape,mu,sig,n){let a=[];if(shape==="normal"){for(let i=0;i<n;i++)a.push(mu+sig*randn())}
+else if(shape==="uniform"){let w=sig*Math.sqrt(12);for(let i=0;i<n;i++)a.push(mu+(Math.random()-.5)*w)}
+else if(shape==="skew"){for(let i=0;i<n;i++){let g=gr(4);a.push(mu+sig*(g-4)/2)}}
+else{let sep=.75,within=.66,sc=1/Math.sqrt(sep*sep+within*within);for(let i=0;i<n;i++){let m=Math.random()<.5?-sep:sep;a.push(mu+sig*sc*(m+within*randn()))}}return a}
+function mean(a){return a.reduce((s,x)=>s+x,0)/a.length}
+function variance(a){let m=mean(a);return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)}
+function P(){return{shape1:$("shape1").value,mu1:+$("mu1").value,sig1:Math.max(.2,+$("sig1").value),n1:Math.max(2,+$("n1").value),shape2:$("shape2").value,mu2:+$("mu2").value,sig2:Math.max(.2,+$("sig2").value),n2:Math.max(2,+$("n2").value),cl:+$("cl").value/100,method:$("method").value}}
+function params(p){let md=p.mu1-p.mu2, se=Math.sqrt(p.sig1*p.sig1/p.n1+p.sig2*p.sig2/p.n2),df=((p.sig1*p.sig1/p.n1+p.sig2*p.sig2/p.n2)**2)/((p.sig1**4/(p.n1*p.n1*(p.n1-1)))+(p.sig2**4/(p.n2*p.n2*(p.n2-1))));let q=p.method==="z"?invN((1+p.cl)/2):invT((1+p.cl)/2,df);return{md,se,df,q}}
+function clear(){while($("viz").firstChild)$("viz").removeChild($("viz").firstChild)}
+function fmt(x){return Number(x).toFixed(2)}
+function xscale(x,x0,x1){return L+(x-x0)/(x1-x0)*(R-L)}
+function axes(x0,x1,y0,y1){ln(L,y1,R,y1,{stroke:"#333"});ln(L,y0,L,y1,{stroke:"#333"});for(let i=0;i<=8;i++){let x=L+i*(R-L)/8,z=x0+i*(x1-x0)/8;ln(x,y1,x,y1+5,{stroke:"#333"});tx(x,y1+18,fmt(z),{"font-size":11,"text-anchor":"middle"})}}
+function curve(x0,x1,y0,y1,fn,my){let d="";for(let i=0;i<=260;i++){let x=x0+(x1-x0)*i/260,y=fn(x),sx=xscale(x,x0,x1),sy=y1-y/my*(y1-y0);d+=(i?"L":"M")+sx+","+sy}path(d,{fill:"none",stroke:"#333","stroke-width":2.7})}
+function normalPDF(x,m,s){return Math.exp(-.5*((x-m)/s)**2)/(s*Math.sqrt(2*Math.PI))}
+function popDensity(shape,x,mu,sig){if(shape==="normal")return normalPDF(x,mu,sig);if(shape==="uniform")return Math.abs(x-mu)<=sig*Math.sqrt(3)?1/(2*sig*Math.sqrt(3)):0;if(shape==="skew"){let z=(x-mu)/sig+4;return z>0?Math.pow(z,3)*Math.exp(-z)/6/sig/1.7:0}let sep=.75,within=.66,sc=1/Math.sqrt(sep*sep+within*within),m=sep*sig*sc,s=within*sig*sc;return .5*normalPDF(x,mu-m,s)+.5*normalPDF(x,mu+m,s)}
+function drawPop(p){
+let y0=48,y1=170,x0=Math.min(p.mu1-4*p.sig1,p.mu2-4*p.sig2),x1=Math.max(p.mu1+4*p.sig1,p.mu2+4*p.sig2);tx(30,25,"Populations",{"font-size":17,"font-weight":"700"});
+tx(350,25,`Population 1: ${p.shape1}   μ1 = ${fmt(p.mu1)}   σ1 = ${fmt(p.sig1)}`,{"font-size":12});
+tx(870,25,`Population 2: ${p.shape2}   μ2 = ${fmt(p.mu2)}   σ2 = ${fmt(p.sig2)}`,{"font-size":12});
+let my=0;for(let i=0;i<=240;i++){let x=x0+(x1-x0)*i/240;my=Math.max(my,popDensity(p.shape1,x,p.mu1,p.sig1),popDensity(p.shape2,x,p.mu2,p.sig2))}
+let d1="",d2="";for(let i=0;i<=240;i++){let x=x0+(x1-x0)*i/240,sx=xscale(x,x0,x1);d1+=(i?"L":"M")+sx+","+(y1-popDensity(p.shape1,x,p.mu1,p.sig1)/my*(y1-y0));d2+=(i?"L":"M")+sx+","+(y1-popDensity(p.shape2,x,p.mu2,p.sig2)/my*(y1-y0))}
+path(d1,{fill:"none",stroke:"#333","stroke-width":2.5});path(d2,{fill:"none",stroke:"#777","stroke-width":2.5,"stroke-dasharray":"7,5"});ln(L,y1,R,y1,{stroke:"#333"});tx(L,y1+18,fmt(x0),{"font-size":11});tx(R,y1+18,fmt(x1),{"font-size":11,"text-anchor":"end"});tx(R-10,47,"solid = Population 1   dashed = Population 2",{"font-size":11,"text-anchor":"end",fill:"#555"})
+}
+function diffAxis(p){
+  // Hold the sampling-distribution x-axis fixed while n changes.
+  // Use the widest allowed SE (n=2 for both samples) as the reference span.
+  // Changing sigma or the population means can legitimately change the axis;
+  // changing n alone must not.
+  let maxSE=Math.sqrt((p.sig1*p.sig1)/2+(p.sig2*p.sig2)/2);
+  let span=Math.max(4*maxSE,.25);
+  return {x0:p.mu1-p.mu2-1.05*span,x1:p.mu1-p.mu2+1.05*span};
+}
+function drawSampling(p){
+let q=params(p),y0=215,y1=370,ax=diffAxis(p),x0=ax.x0,x1=ax.x1;
+let fn=x=>normalPDF(x,q.md,q.se),my=fn(q.md)*1.15;tx(30,202,"Theoretical sampling distribution of D = x̄1 − x̄2",{"font-size":17,"font-weight":"700"});
+axes(x0,x1,y0,y1);curve(x0,x1,y0,y1,fn,my);let sx=x=>xscale(x,x0,x1);
+let blo=q.md-q.q*q.se,bhi=q.md+q.q*q.se;
+rr(sx(blo),y0,sx(bhi)-sx(blo),y1-y0,{fill:"#eee",stroke:"none"});curve(x0,x1,y0,y1,fn,my);
+ln(sx(q.md),y0,sx(q.md),y1,{stroke:"#111","stroke-width":2});
+ln(sx(blo),y0,sx(blo),y1,{stroke:"#777","stroke-width":2});ln(sx(bhi),y0,sx(bhi),y1,{stroke:"#777","stroke-width":2});
+tx(sx(q.md),y0+15,"true difference μ1 − μ2",{"font-size":11,"text-anchor":"middle"});
+tx(1100,202,`${Math.round(p.cl*100)}% reference region`,{"font-size":12});
+tx(1100,221,`SE = ${fmt(q.se)}   df = ${p.method==="t"?fmt(q.df):"—"}`,{"font-size":12});
+}
+function ytStart(){return 430}
+function drawRows(p){
+let q=params(p),target=q.md,y0=ytStart(),ax=diffAxis(p),x0=ax.x0,x1=ax.x1;let sx=x=>xscale(x,x0,x1);
+tx(30,y0-9,"Repeated samples",{"font-size":17,"font-weight":"700"});tx(30,y0+9,"Observed difference and confidence interval",{"font-size":12,fill:"#555"});
+ln(sx(target),y0+15,sx(target),y0+20*17+8,{stroke:"#111","stroke-width":2});
+ln(sx(0),y0+15,sx(0),y0+20*17+8,{stroke:"#555","stroke-width":2,"stroke-dasharray":"8,6"});
+let blo=target-q.q*q.se,bhi=target+q.q*q.se;
+ln(sx(blo),y0+15,sx(blo),y0+20*17+8,{stroke:"#777","stroke-width":1.5,"stroke-dasharray":"4,5"});
+ln(sx(bhi),y0+15,sx(bhi),y0+20*17+8,{stroke:"#777","stroke-width":1.5,"stroke-dasharray":"4,5"});
+rows.forEach((r,i)=>{let y=y0+25+i*17,ok=r.lo<=target&&target<=r.hi,col=ok?"#238b45":"#c62828";ln(sx(r.lo),y,sx(r.hi),y,{stroke:col,"stroke-width":3});ln(sx(r.lo),y-5,sx(r.lo),y+5,{stroke:col,"stroke-width":2});ln(sx(r.hi),y-5,sx(r.hi),y+5,{stroke:col,"stroke-width":2});add("circle",{cx:sx(r.est),cy:y,r:5,fill:col,stroke:col,"stroke-width":2});tx(48,y+4,String(r.id).padStart(2,"0"),{"font-size":10,"text-anchor":"end",fill:"#555"})});
+tx(sx(target),y0+20*17+23,"true difference",{"font-size":11,"text-anchor":"middle"});
+tx(sx(0),y0+20*17+39,"0 difference",{"font-size":11,"text-anchor":"middle",fill:"#555"});
+}
+function draw(){
+let p=P(),q=params(p);clear();drawPop(p);drawSampling(p);drawRows(p);
+$("clLabel").textContent=Math.round(p.cl*100)+"%";
+$("coverage").textContent=rows.length?Math.round(100*rows.filter(r=>r.lo<=q.md&&q.md<=r.hi).length/rows.length)+"%":"—";
+$("coverageText").textContent=`${rows.filter(r=>r.lo<=q.md&&q.md<=r.hi).length} of ${rows.length} intervals captured the true difference`;
+$("note").innerHTML=p.method==="z"?
+"<b>Known σ:</b> the reference boundaries use the known standard error. For normal populations the difference is exactly normal; with non-normal populations, it becomes approximately normal as sample sizes become sufficiently large.":
+"<b>Unknown σ:</b> each interval uses the two sample SDs and Welch's t critical value. The t reference is exact for normal populations and approximate for non-normal populations. The dotted lines show the reference limits based on the population SE; individual intervals use their own estimated SE.";
+$("formula").innerHTML=p.method==="z"?
+"<b>Z interval:</b> (x̄1 − x̄2) ± z* √(σ1²/n1 + σ2²/n2)":
+"<b>Welch t interval:</b> (x̄1 − x̄2) ± t* √(s1²/n1 + s2²/n2), with Welch–Satterthwaite degrees of freedom.";
+}
+function take(){
+let p=P(),a=sample(p.shape1,p.mu1,p.sig1,p.n1),b=sample(p.shape2,p.mu2,p.sig2,p.n2),m1=mean(a),m2=mean(b),est=m1-m2;
+if(p.method==="z"){let se=Math.sqrt(p.sig1*p.sig1/p.n1+p.sig2*p.sig2/p.n2),q=invN((1+p.cl)/2);rows.push({id:++seq,est,lo:est-q*se,hi:est+q*se})}
+else{let s1=Math.sqrt(variance(a)),s2=Math.sqrt(variance(b)),se=Math.sqrt(s1*s1/p.n1+s2*s2/p.n2),df=((s1*s1/p.n1+s2*s2/p.n2)**2)/((s1**4/(p.n1*p.n1*(p.n1-1)))+(s2**4/(p.n2*p.n2*(p.n2-1)))),q=invT((1+p.cl)/2,df);rows.push({id:++seq,est,lo:est-q*se,hi:est+q*se})}
+if(rows.length>20)rows.shift();draw();
+}
+$("one").onclick=take;$("start").onclick=()=>{if(!timer){take();timer=setInterval(take,1000)}};$("stop").onclick=()=>{clearInterval(timer);timer=null};$("clear").onclick=()=>{clearInterval(timer);timer=null;rows=[];seq=0;draw()};
+["method","shape1","mu1","sig1","n1","shape2","mu2","sig2","n2","cl"].forEach(id=>$(id).addEventListener("input",()=>{rows=[];seq=0;draw()}));
+draw();
+</script>
+</body>
+</html>

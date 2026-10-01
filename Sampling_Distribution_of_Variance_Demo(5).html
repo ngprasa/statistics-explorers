@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sampling Distribution of the Sample Variance — Interactive Demo</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Calibri, Arial, sans-serif;
+    color: #111;
+    background: #fff;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 19% 81%;
+  }
+  .controls {
+    border-right: 1px solid #bbb;
+    padding: 18px 16px;
+    overflow-y: auto;
+    background: #fafafa;
+  }
+  h1 { font-size: 22px; line-height: 1.1; margin: 0 0 7px; }
+  .subtitle { font-size: 14px; line-height: 1.3; margin-bottom: 17px; }
+  .section {
+    border-top: 1px solid #bbb;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  .label { font-weight: 700; font-size: 14px; margin-bottom: 5px; }
+  select, button {
+    width: 100%;
+    font: inherit;
+    background: white;
+    border: 1px solid #888;
+    padding: 7px 8px;
+    border-radius: 3px;
+  }
+  button { cursor: pointer; margin-top: 9px; }
+  button:hover { background: #f0f0f0; }
+  input[type=range] { width: 100%; margin: 5px 0 0; }
+  .value { font-size: 18px; font-weight: 700; text-align: center; margin-top: 1px; }
+  .small { font-size: 12px; line-height: 1.3; }
+  .stats { font-size: 13px; line-height: 1.55; }
+  .stats b { font-weight: 700; }
+  .bigidea { font-size: 13px; line-height: 1.4; }
+  .graphs {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    height: 100vh;
+  }
+  .panel { position: relative; min-height: 0; padding: 8px 18px 12px 10px; }
+  .panel + .panel { border-top: 1px solid #aaa; }
+  .graph-title {
+    position: absolute; top: 8px; left: 18px;
+    font-size: 17px; font-weight: 700; z-index: 2;
+    background: rgba(255,255,255,.9); padding-right: 8px;
+  }
+  canvas { width: 100%; height: 100%; display: block; }
+  .overlay-note {
+    position: absolute; right: 28px; top: 9px;
+    font-size: 12px; background: rgba(255,255,255,.92); padding: 3px 5px;
+  }
+  .below {
+    width: 100%; padding: 24px 18px 40px;
+    border-top: 1px solid #aaa;
+    font-family: Calibri, Arial, sans-serif;
+  }
+  .below-section {
+    max-width: 1100px; margin: 0 auto 22px;
+    border: 1px solid #ccc; padding: 16px 18px; background: #fff;
+  }
+  .below-section.bigidea { font-size: 16px; line-height: 1.6; }
+  .below-section h2 { font-size: 19px; margin: 0 0 8px; }
+  .below-section p, .below-section li { font-size: 15px; line-height: 1.55; }
+  .below-section ol { margin-bottom: 0; }
+  .formula { text-align: center; font-size: 19px; margin: 10px 0; }
+  .warning { border-left: 4px solid #777; padding-left: 12px; }
+  @media(max-width:760px){
+    .app { grid-template-columns: 1fr; }
+    .controls { border-right: 0; border-bottom: 1px solid #bbb; }
+    .graphs { height: 90vh; }
+  }
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+
+<div class="app">
+  <aside class="controls">
+    <h1>Sampling Distribution of the Sample Variance</h1>
+    <div class="subtitle">
+      Watch what happens to the sample variance under repeated sampling — and discover why it behaves differently from the sample mean.
+    </div>
+
+    <div class="section">
+      <div class="label">Population</div>
+      <select id="population">
+        <option value="normal">Normal</option>
+        <option value="uniform">Uniform</option>
+        <option value="skewed">Right-skewed</option>
+        <option value="bimodal">Bimodal</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <div class="label">Sample size, <i>n</i></div>
+      <input id="n" type="range" min="2" max="100" value="10" step="1">
+      <div class="value" id="nVal">10</div>
+      <div class="small">Move slowly and watch the lower graph.</div>
+    </div>
+
+    <div class="section">
+      <div class="label">Repeated samples</div>
+      <input id="reps" type="range" min="200" max="5000" value="1500" step="100">
+      <div class="value" id="repsVal">1500</div>
+      <button id="resample">Resample</button>
+    </div>
+
+    <div class="section">
+      <div class="label">What to plot</div>
+      <select id="scale">
+        <option value="raw">Raw sample variance, S²</option>
+        <option value="scaled">Scaled variance, (n − 1)S² / σ²</option>
+      </select>
+      <div class="small" style="margin-top:7px">
+        σ² is the population variance. It is shown here because the population is known in the simulation.
+      </div>
+    </div>
+
+    <div class="section stats">
+      <div><b>Population mean μ:</b> <span id="mu">0.00</span></div>
+      <div><b>Population variance σ²:</b> <span id="sigma2">1.00</span></div>
+      <div><b>Mean of S²:</b> <span id="meanS2">1.00</span></div>
+      <div><b>SD of S²:</b> <span id="sdS2">0.00</span></div>
+    </div>
+
+    <div class="section bigidea">
+      <b>What to watch for</b><br>
+      For a normal population, the scaled variance has an exact chi-square distribution.
+      The dashed chi-square curve is shown for <strong>every population shape</strong>. For the
+      normal population it is the exact theoretical reference; for non-normal populations,
+      compare the sampling distribution with the same reference and look for departures.
+    </div>
+  </aside>
+
+  <main class="graphs">
+    <section class="panel">
+      <div class="graph-title">Population Distribution</div>
+      <canvas id="popCanvas"></canvas>
+    </section>
+    <section class="panel">
+      <div class="graph-title">Sampling Distribution of the Sample Variance</div>
+      <div class="overlay-note" id="overlayNote">Dashed: theoretical chi-square relationship</div>
+      <canvas id="sampleCanvas"></canvas>
+    </section>
+  </main>
+</div>
+
+<script>
+const popCanvas = document.getElementById('popCanvas');
+const sampleCanvas = document.getElementById('sampleCanvas');
+const pctx = popCanvas.getContext('2d');
+const sctx = sampleCanvas.getContext('2d');
+
+const popSelect = document.getElementById('population');
+const nSlider = document.getElementById('n');
+const repsSlider = document.getElementById('reps');
+const scaleSelect = document.getElementById('scale');
+const nVal = document.getElementById('nVal');
+const repsVal = document.getElementById('repsVal');
+const muEl = document.getElementById('mu');
+const sigma2El = document.getElementById('sigma2');
+const meanS2El = document.getElementById('meanS2');
+const sdS2El = document.getElementById('sdS2');
+const overlayNote = document.getElementById('overlayNote');
+
+let populationType = 'normal';
+let currentS2 = [];
+
+function resizeCanvas(c) {
+  const r = c.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  c.width = Math.max(1, Math.round(r.width*dpr));
+  c.height = Math.max(1, Math.round(r.height*dpr));
+  c.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
+}
+
+function standardNormal() {
+  let u=0,v=0;
+  while(u===0) u=Math.random();
+  while(v===0) v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+/* All four populations have the same mean (10) and variance (4).
+   This lets students compare population shapes without changing location
+   or scale. */
+function sampleOne() {
+  // All populations have μ = 10 and σ² = 4.
+  if (populationType === 'normal') return 10 + 2*standardNormal();
+
+  if (populationType === 'uniform') {
+    return 10 + Math.sqrt(12)*(2*Math.random()-1);
+  }
+
+  if (populationType === 'skewed') {
+    return 8 - 2*Math.log(Math.random()); // shifted exponential: mean 10, variance 4
+  }
+
+  // Symmetric bimodal mixture, scaled to variance 4 and centred at 10.
+  const a=1.2, sd=0.45;
+  const raw=(Math.random()<0.5 ? -a : a) + sd*standardNormal();
+  return 10 + 2*raw/Math.sqrt(a*a+sd*sd);
+}
+
+function populationPDF(x) {
+  if (populationType === 'normal') {
+    const z=(x-10)/2;
+    return Math.exp(-z*z/2)/(2*Math.sqrt(2*Math.PI));
+  }
+  if (populationType === 'uniform') {
+    const half=Math.sqrt(12);
+    return (x>=10-half && x<=10+half) ? 1/(2*half) : 0;
+  }
+  if (populationType === 'skewed') {
+    return x>=8 ? 0.5*Math.exp(-(x-8)/2) : 0;
+  }
+  const a=1.2, sd=0.45, scale=Math.sqrt(a*a+sd*sd);
+  const z=(x-10)*scale/2;
+  const zz1=z-a, zz2=z+a;
+  return 0.5*Math.exp(-(zz1**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI))*scale/2
+       +0.5*Math.exp(-(zz2**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI))*scale/2;
+}
+
+function populationStats() {
+  return {mu:10, sigma2:4};
+}
+
+function getPopRange() {
+  if (populationType === 'uniform') return [6,14];
+  if (populationType === 'skewed') return [7.5,22];
+  if (populationType === 'bimodal') return [6,14];
+  return [4,16];
+}
+
+function drawAxes(ctx,W,H,xmin,xmax,ymax,yLabel) {
+  const L=55,R=18,T=38,B=38;
+  const x0=L,y0=H-B;
+  ctx.strokeStyle='#777';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x0,T);ctx.lineTo(x0,y0);ctx.lineTo(W-R,y0);ctx.stroke();
+  ctx.fillStyle='#222';ctx.font='12px Calibri, Arial';
+  const ticks=8;
+  for(let i=0;i<=ticks;i++){
+    const x=x0+(W-R-x0)*i/ticks;
+    const val=xmin+(xmax-xmin)*i/ticks;
+    ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y0+4);ctx.stroke();
+    ctx.textAlign='center';ctx.fillText(val.toFixed(1),x,y0+18);
+  }
+  ctx.save();
+  ctx.translate(16,(T+y0)/2);ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center';ctx.fillText(yLabel,0,0);ctx.restore();
+  return {L,R,T,B,x0,y0,plotW:W-R-x0,plotH:y0-T};
+}
+
+function plotPopulation() {
+  const W=popCanvas.clientWidth,H=popCanvas.clientHeight;
+  pctx.clearRect(0,0,W,H);
+  const [xmin,xmax]=getPopRange();
+  let ymax=0;
+  for(let i=0;i<=500;i++) ymax=Math.max(ymax,populationPDF(xmin+(xmax-xmin)*i/500));
+  ymax*=1.18;
+  const a=drawAxes(pctx,W,H,xmin,xmax,ymax,'Density');
+  const X=x=>a.x0+(x-xmin)/(xmax-xmin)*a.plotW;
+  const Y=y=>a.y0-(y/ymax)*a.plotH;
+  pctx.strokeStyle='#111';pctx.lineWidth=2.2;
+  pctx.beginPath();
+  for(let i=0;i<=800;i++){
+    const x=xmin+(xmax-xmin)*i/800,y=populationPDF(x);
+    if(i===0)pctx.moveTo(X(x),Y(y));else pctx.lineTo(X(x),Y(y));
+  }
+  pctx.stroke();
+  pctx.strokeStyle='#aaa';pctx.setLineDash([5,4]);pctx.lineWidth=1;
+  pctx.beginPath();pctx.moveTo(X(0),a.T);pctx.lineTo(X(0),a.y0);pctx.stroke();pctx.setLineDash([]);
+  pctx.fillStyle='#222';pctx.font='13px Calibri, Arial';pctx.textAlign='left';
+  const ps=populationStats();
+  pctx.fillText('μ = '+ps.mu.toFixed(2)+',   σ² = '+ps.sigma2.toFixed(2),a.x0+8,a.T+18);
+}
+
+function makeVarianceSamples() {
+  const n=+nSlider.value,reps=+repsSlider.value,arr=new Array(reps);
+  for(let j=0;j<reps;j++){
+    let sum=0;
+    const xs=new Array(n);
+    for(let i=0;i<n;i++){xs[i]=sampleOne();sum+=xs[i];}
+    const mean=sum/n;
+    let ss=0;
+    for(let i=0;i<n;i++){const d=xs[i]-mean;ss+=d*d;}
+    arr[j]=ss/(n-1);
+  }
+  return arr;
+}
+
+function histogram(data,xmin,xmax,bins) {
+  const counts=new Array(bins).fill(0),w=(xmax-xmin)/bins;
+  for(const x of data){
+    let k=Math.floor((x-xmin)/w);
+    if(k>=0&&k<bins)counts[k]++;
+  }
+  return {counts,w};
+}
+
+/* Lanczos log-gamma */
+function logGamma(z){
+  const p=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.6150291621406,12.507343278686905,
+    -0.13857109526572012,9.984369578019571e-6,1.5056327351493116e-7];
+  if(z<0.5)return Math.log(Math.PI)-Math.log(Math.sin(Math.PI*z))-logGamma(1-z);
+  z-=1;let x=p[0];
+  for(let i=1;i<p.length;i++)x+=p[i]/(z+i);
+  const t=z+7.5;
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+
+function chiSquarePDF(x,k){
+  if(x<=0)return 0;
+  return Math.exp((k/2-1)*Math.log(x)-x/2-(k/2)*Math.log(2)-logGamma(k/2));
+}
+
+function sampleMean(arr){return arr.reduce((a,b)=>a+b,0)/arr.length;}
+function sampleSD(arr){
+  const m=sampleMean(arr);
+  return Math.sqrt(arr.reduce((s,x)=>s+(x-m)*(x-m),0)/(arr.length-1));
+}
+
+function plotSampling() {
+  const W=sampleCanvas.clientWidth,H=sampleCanvas.clientHeight;
+  sctx.clearRect(0,0,W,H);
+
+  const n=+nSlider.value, k=n-1, sigma2=populationStats().sigma2;
+  const scaled=scaleSelect.value==='scaled';
+
+  // Keep exactly the same x-axis when switching between raw S² and
+  // scaled (n−1)S²/σ². This makes the effect of the scaling itself
+  // immediately visible. The common range is chosen from the scaled
+  // variable, whose theoretical mean is n−1.
+  let xmin=0,xmax=Math.max(12,k*1.9),bins=55;
+
+  // Plot the correct variable. For the scaled view the histogram must
+  // use Q = (n − 1)S² / σ², not the raw S² values.
+  const c=(n-1)/sigma2;
+  const rawData=currentS2;
+  const scaledData=currentS2.map(v=>c*v);
+  const plotData = scaled ? scaledData : rawData;
+  const h=histogram(plotData,xmin,xmax,bins);
+
+  // Keep the Y-axis fixed when switching between raw S² and scaled variance.
+  // Determine the common density range from BOTH empirical distributions,
+  // so changing the display does not rescale the vertical axis and thereby
+  // hide the visual effect of the transformation.
+  let maxRawDensity=0, maxScaledDensity=0;
+  const hRaw=histogram(rawData,xmin,xmax,bins);
+  const hScaled=histogram(scaledData,xmin,xmax,bins);
+  for(let i=0;i<bins;i++){
+    maxRawDensity=Math.max(maxRawDensity,hRaw.counts[i]/rawData.length/hRaw.w);
+    maxScaledDensity=Math.max(maxScaledDensity,hScaled.counts[i]/scaledData.length/hScaled.w);
+  }
+
+  // Keep the standard chi-square reference unchanged in BOTH views.
+  // It is always the chi-square distribution with df = n−1.
+  // In the scaled view, the sampling distribution should match this curve
+  // for a normal population. In the raw S² view, the same curve is retained
+  // deliberately as a visual reference for what the scaling accomplishes.
+  let overlayMax=0;
+  for(let i=0;i<=600;i++){
+    const x=xmin+(xmax-xmin)*i/600;
+    const y=chiSquarePDF(x,k);
+    overlayMax=Math.max(overlayMax,y);
+  }
+
+  const ymax=Math.max(maxRawDensity,maxScaledDensity,overlayMax)*1.22;
+  const a=drawAxes(sctx,W,H,xmin,xmax,ymax,scaled?'Density':'Density of S²');
+  const X=x=>a.x0+(x-xmin)/(xmax-xmin)*a.plotW;
+  const Y=y=>a.y0-(y/ymax)*a.plotH;
+
+  sctx.strokeStyle='#111';sctx.lineWidth=1;
+  for(let i=0;i<bins;i++){
+    const left=xmin+i*h.w;
+    const density=h.counts[i]/currentS2.length/h.w;
+    const x1=X(left)+.5,x2=X(left+h.w)-.5;
+    sctx.fillStyle='#d8d8d8';
+    sctx.fillRect(x1,Y(density),Math.max(1,x2-x1),a.y0-Y(density));
+    sctx.strokeStyle='#aaa';sctx.strokeRect(x1,Y(density),Math.max(1,x2-x1),a.y0-Y(density));
+  }
+
+  // Theoretical chi-square reference, shown in both views.
+  sctx.strokeStyle='#555';sctx.setLineDash([7,5]);sctx.lineWidth=2;
+  sctx.beginPath();
+  for(let i=0;i<=900;i++){
+    const x=xmin+(xmax-xmin)*i/900;
+    const y=chiSquarePDF(x,k);
+    if(i===0)sctx.moveTo(X(x),Y(y));else sctx.lineTo(X(x),Y(y));
+  }
+  sctx.stroke();sctx.setLineDash([]);
+
+  // True variance reference.
+  const ref=scaled ? (n-1) : sigma2;
+  if(ref>=xmin && ref<=xmax){
+    sctx.strokeStyle='#999';sctx.setLineDash([4,4]);sctx.lineWidth=1;
+    sctx.beginPath();sctx.moveTo(X(ref),a.T);sctx.lineTo(X(ref),a.y0);sctx.stroke();sctx.setLineDash([]);
+  }
+
+  sctx.fillStyle='#222';sctx.font='13px Calibri, Arial';sctx.textAlign='left';
+  sctx.fillText(
+    scaled ? 'n = '+n+'     df = '+k+'     σ² = '+sigma2.toFixed(2) : 'n = '+n+'     σ² = '+sigma2.toFixed(2),
+    a.x0+8,a.T+18
+  );
+
+  overlayNote.textContent = 'Dashed: χ² reference with df = n − 1';
+}
+
+function updateStats(){
+  const n=+nSlider.value;
+  const m=sampleMean(currentS2);
+  const sd=sampleSD(currentS2);
+  const ps=populationStats();
+  muEl.textContent=ps.mu.toFixed(2);
+  sigma2El.textContent=ps.sigma2.toFixed(2);
+  meanS2El.textContent=m.toFixed(3);
+  sdS2El.textContent=sd.toFixed(3);
+  nVal.textContent=n;
+  repsVal.textContent=repsSlider.value;
+}
+
+function redraw(){
+  updateStats();plotPopulation();plotSampling();
+}
+
+function updateN(){
+  currentS2=makeVarianceSamples();redraw();
+}
+
+popSelect.addEventListener('change',()=>{
+  populationType=popSelect.value;
+  currentS2=makeVarianceSamples();redraw();
+});
+nSlider.addEventListener('input',updateN);
+scaleSelect.addEventListener('change',redraw);
+repsSlider.addEventListener('input',()=>{repsVal.textContent=repsSlider.value;});
+document.getElementById('resample').addEventListener('click',()=>{
+  currentS2=makeVarianceSamples();redraw();
+});
+window.addEventListener('resize',()=>{
+  resizeCanvas(popCanvas);resizeCanvas(sampleCanvas);redraw();
+});
+
+resizeCanvas(popCanvas);resizeCanvas(sampleCanvas);
+currentS2=makeVarianceSamples();redraw();
+</script>
+
+<div class="below">
+  <div class="below-section">
+    <h2>Sampling distribution of the sample variance</h2>
+    <div class="below-section bigidea" style="border:0;padding:0;margin:0">
+      The sample variance is itself a statistic. Repeated random samples therefore produce a
+      <strong>sampling distribution of S²</strong>.
+      <br><br>
+      For a random sample from a normal population,
+      <div class="formula"><strong>(n − 1)S² / σ² ~ chi-square with n − 1 degrees of freedom.</strong></div>
+      This is an exact result, not an approximation.
+    </div>
+  </div>
+
+  <div class="below-section">
+    <h2>What is different from the sample mean?</h2>
+    <p>
+      The Central Limit Theorem gives a general result about the sampling distribution of the
+      <strong>sample mean</strong>: for a very broad class of populations, it becomes approximately
+      Gaussian as <i>n</i> becomes large.
+    </p>
+    <p>
+      There is <strong>no corresponding universal CLT-like result for S²</strong> that says its sampling
+      distribution becomes Gaussian simply because <i>n</i> becomes large. For a normal population,
+      the exact sampling distribution is related to chi-square instead. For non-normal populations,
+      the shape depends on the population distribution and there is no single chi-square family that
+      describes it.
+    </p>
+    <p class="warning">
+      <strong>Important:</strong> this does not mean that S² can never have an approximately normal
+      sampling distribution under particular conditions. It means there is no universal rule analogous
+      to the CLT for the sample mean that students can apply simply from knowing that <i>n</i> is large.
+    </p>
+  </div>
+
+  <div class="below-section">
+    <h2>Try this</h2>
+    <ol>
+      <li>Choose the <strong>Normal</strong> population. Compare <i>n</i> = 5, 10, 30 and 50. Watch the lower graph and the chi-square overlay.</li>
+      <li>Switch between <strong>Raw sample variance</strong> and <strong>Scaled variance</strong>. What changes? What stays the same?</li>
+      <li>For a normal population, increase <i>n</i>. How does the chi-square distribution change as its degrees of freedom increase?</li>
+      <li>Now choose the <strong>Right-skewed</strong> population. Increase <i>n</i>. Does the sampling distribution of S² simply become Gaussian in the way the sample mean does?</li>
+      <li>Repeat with the <strong>Uniform</strong> and <strong>Bimodal</strong> populations. Does one universal curve describe all of them?</li>
+      <li>Keep <i>n</i> fixed and increase the number of repeated samples. What changes: the underlying sampling distribution, or how clearly you see it?</li>
+    </ol>
+  </div>
+
+  <div class="below-section">
+    <h2>A useful connection</h2>
+    <p>
+      The normal-population result is the bridge to the chi-square distribution. The same theoretical reference is kept visible even when the population is non-normal, so you can see what changes when the normal-population assumption is broken:
+    </p>
+    <div class="formula"><strong>Normal population → sample variance → scaled variance → chi-square distribution.</strong></div>
+    <p>
+      This is the key construction you will need when we move from chi-square to the t distribution.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

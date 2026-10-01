@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sampling Distributions</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#17202a;--muted:#5f6b76;--line:#d9dee5;--accent:#2457a6;--accent2:#b43a2f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:20px 26px 24px}
+h1{font-size:31px;margin:0 0 4px}.sub{font-size:15px;color:var(--muted);margin-bottom:16px}
+.top{display:grid;grid-template-columns:320px 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:16px;box-shadow:0 2px 7px #0000000b}
+.controls label{display:block;font-weight:700;margin:12px 0 6px}
+.controls select,.controls input{width:100%;font-size:16px}
+.value{font-size:22px;font-weight:700}.small{font-size:13px;color:var(--muted);line-height:1.4}
+button{border:1px solid #aeb7c2;background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:700}
+button:hover{background:#f0f3f7}.buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.panel-title{font-size:18px;font-weight:700;margin:0 0 5px}.panel-sub{font-size:13px;color:var(--muted);margin-bottom:8px}
+canvas{width:100%;height:350px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:9px 10px}.stat .lab{font-weight:700;font-size:15px}.stat .num{font-size:21px;margin-top:3px}
+.bottom{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px}
+.explain{font-size:15px;line-height:1.5}.explain strong{font-size:18px}
+input[type=range]{accent-color:var(--accent)}
+@media(max-width:1000px){.top,.panels,.bottom{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.wrap{padding:14px}}
+</style>
+</head>
+<body>
+<div class="site-nav" style="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px 12px;margin:-1px -1px 14px;background:#f5f5f5;border-bottom:1px solid #d0d0d0;font-family:Arial,sans-serif;font-size:14px;">
+<a href="index.html" style="text-decoration:none;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">⌂ Index</a>
+<button type="button" onclick="history.back()" style="cursor:pointer;color:#222;border:1px solid #aaa;border-radius:5px;padding:5px 10px;background:#fff;">← Back</button>
+</div>
+
+<div class="wrap">
+<h1>Sampling Distributions</h1>
+<div class="sub">Choose a population, choose a statistic, repeatedly sample, and watch the sampling distribution of that statistic emerge.</div>
+
+<div class="top">
+<div class="card controls">
+<h2 style="margin:0 0 8px">Controls</h2>
+<label for="pop">Population distribution</label>
+<select id="pop">
+<option value="normal">Normal</option>
+<option value="uniform">Uniform</option>
+<option value="skewed">Right-skewed</option>
+</select>
+
+<label for="stat">Statistic of interest</label>
+<select id="stat">
+<option value="mean">Mean</option>
+<option value="median">Median</option>
+<option value="variance">Variance</option>
+<option value="sd">Standard deviation</option>
+<option value="range">Range</option>
+</select>
+
+<label>Sample size, n</label>
+<input id="n" type="range" min="2" max="100" value="10" step="1">
+<div class="value" id="nv">10</div>
+<div class="buttons">
+<button type="button" data-n="2">2</button>
+<button type="button" data-n="5">5</button>
+<button type="button" data-n="10">10</button>
+<button type="button" data-n="30">30</button>
+<button type="button" data-n="100">100</button>
+</div>
+
+<label>Number of repeated samples</label>
+<input id="nsamp" type="range" min="100" max="20000" value="2000" step="100">
+<div class="value" id="nsv">2,000</div>
+<div class="buttons">
+<button type="button" data-ns="100">100</button>
+<button type="button" data-ns="500">500</button>
+<button type="button" data-ns="2000">2,000</button>
+<button type="button" data-ns="10000">10,000</button>
+</div>
+
+<div class="buttons" style="margin-top:16px">
+<button type="button" id="run">Resample</button>
+</div>
+
+<div class="small" style="margin-top:12px">Each repeated sample contains <b>n independent observations</b> from the chosen population. The selected statistic is calculated once for each sample.</div>
+</div>
+
+<div class="card">
+<div class="panels">
+<div>
+<div class="panel-title">1. Population</div>
+<div class="panel-sub" id="popdesc">Normal population with mean 0 and SD 1.</div>
+<canvas id="popchart" width="650" height="350"></canvas>
+</div>
+<div>
+<div class="panel-title">2. Sampling distribution</div>
+<div class="panel-sub" id="statdesc">Distribution of sample means across repeated samples.</div>
+<canvas id="sampchart" width="650" height="350"></canvas>
+</div>
+</div>
+
+<div class="stats">
+<div class="stat"><div class="lab">Statistic</div><div class="num" id="statname">Mean</div></div>
+<div class="stat"><div class="lab">Sample size, n</div><div class="num" id="statn">10</div></div>
+<div class="stat"><div class="lab">Mean of sampling distribution</div><div class="num" id="smean">—</div></div>
+<div class="stat"><div class="lab">SD of sampling distribution</div><div class="num" id="ssd">—</div></div>
+</div>
+</div>
+</div>
+
+<div class="bottom">
+<div class="card explain">
+<strong>The big idea</strong>
+<p>A statistic is itself a random variable because it changes from sample to sample.</p>
+<p>Mean, median, variance, standard deviation, and range can each have their own sampling distribution.</p>
+<p><b>The sampling distribution is not “the distribution of sample means.” The mean is only one possible statistic.</b></p>
+</div>
+<div class="card explain">
+<strong>Things to try</strong>
+<p>Compare the sampling distributions of the <b>mean</b> and <b>range</b> from the same population.</p>
+<p>Increase <b>n</b> while keeping the population fixed. Which statistics become more concentrated?</p>
+<p>Switch to the skewed population. Do all statistics respond in the same way?</p>
+</div>
+</div>
+</div>
+
+<script>
+const popEl=document.getElementById('pop'),statEl=document.getElementById('stat'),nEl=document.getElementById('n'),nsEl=document.getElementById('nsamp');
+const nv=document.getElementById('nv'),nsv=document.getElementById('nsv');
+const popCanvas=document.getElementById('popchart'),pctx=popCanvas.getContext('2d');
+const sampCanvas=document.getElementById('sampchart'),sctx=sampCanvas.getContext('2d');
+
+function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function drawFromPopulation(type){
+ if(type==='normal')return randn();
+ if(type==='uniform')return Math.sqrt(12)*(Math.random()-.5);
+ return -Math.log(1-Math.random())-1;
+}
+function popPDF(type,x){
+ if(type==='normal')return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+ if(type==='uniform'){const a=-Math.sqrt(3),b=Math.sqrt(3);return (x>=a&&x<=b)?1/(b-a):0;}
+ return x>=-1?Math.exp(-(x+1)):0;
+}
+function calcStat(arr,type){
+ const n=arr.length;
+ if(type==='mean')return arr.reduce((a,b)=>a+b,0)/n;
+ if(type==='median'){const a=[...arr].sort((x,y)=>x-y),m=Math.floor(n/2);return n%2?a[m]:(a[m-1]+a[m])/2;}
+ const mean=arr.reduce((a,b)=>a+b,0)/n;
+ if(type==='variance')return arr.reduce((s,x)=>s+(x-mean)*(x-mean),0)/(n-1);
+ if(type==='sd')return Math.sqrt(arr.reduce((s,x)=>s+(x-mean)*(x-mean),0)/(n-1));
+ let mn=Infinity,mx=-Infinity;for(const x of arr){if(x<mn)mn=x;if(x>mx)mx=x;}return mx-mn;
+}
+function simulate(pop,stat,n,reps){
+ const vals=new Array(reps);
+ for(let r=0;r<reps;r++){const sample=new Array(n);for(let i=0;i<n;i++)sample[i]=drawFromPopulation(pop);vals[r]=calcStat(sample,stat);}
+ return vals;
+}
+function axes(ctx,W,H,ml,mr,mt,mb,xmin,xmax,ymax,xlabel){
+ const pw=W-ml-mr,ph=H-mt-mb,X=x=>ml+(x-xmin)/(xmax-xmin)*pw,Y=y=>mt+ph-y/ymax*ph;
+ ctx.clearRect(0,0,W,H);ctx.strokeStyle='#b8c0c9';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(ml,mt);ctx.lineTo(ml,H-mb);ctx.lineTo(W-mr,H-mb);ctx.stroke();
+ ctx.fillStyle='#5f6b76';ctx.font='12px Arial';ctx.textAlign='center';
+ for(let i=0;i<=6;i++){const x=xmin+(xmax-xmin)*i/6;ctx.fillText(Math.abs(x)<10?x.toFixed(1):x.toFixed(0),X(x),H-mb+19);}
+ ctx.fillStyle='#17202a';ctx.font='bold 13px Arial';ctx.fillText(xlabel,W/2,H-7);return {X,Y};
+}
+function drawPopulation(type){
+ const W=popCanvas.width,H=popCanvas.height,ml=52,mr=16,mt=14,mb=42;
+ let xmin=-4,xmax=4;if(type==='uniform'){xmin=-3;xmax=3;}if(type==='skewed'){xmin=-1.5;xmax=7;}
+ let ymax=0;for(let i=0;i<=800;i++){const x=xmin+(xmax-xmin)*i/800;ymax=Math.max(ymax,popPDF(type,x));}ymax*=1.18;
+ const {X,Y}=axes(pctx,W,H,ml,mr,mt,mb,xmin,xmax,ymax,'X');
+ pctx.strokeStyle='#2457a6';pctx.lineWidth=3;pctx.beginPath();let started=false;
+ for(let i=0;i<=800;i++){const x=xmin+(xmax-xmin)*i/800,y=popPDF(type,x);if(!started){pctx.moveTo(X(x),Y(y));started=true;}else pctx.lineTo(X(x),Y(y));}
+ pctx.stroke();pctx.fillStyle='#17202a';pctx.font='bold 13px Arial';pctx.textAlign='left';pctx.fillText('density',7,22);
+}
+function percentile(a,p){if(a.length===1)return a[0];const idx=(a.length-1)*p,lo=Math.floor(idx),hi=Math.ceil(idx),t=idx-lo;return a[lo]*(1-t)+a[hi]*t;}
+function statLabel(s){return {mean:'sample mean',median:'sample median',variance:'sample variance',sd:'sample SD',range:'sample range'}[s];}
+function statName(s){return {mean:'Mean',median:'Median',variance:'Variance',sd:'Std. dev.',range:'Range'}[s];}
+function drawSampling(vals,stat){
+ const W=sampCanvas.width,H=sampCanvas.height,ml=52,mr=16,mt=14,mb=42,sorted=[...vals].sort((a,b)=>a-b);
+ let xmin=percentile(sorted,.005),xmax=percentile(sorted,.995);if(!(xmax>xmin)){xmin=sorted[0]-.5;xmax=sorted[0]+.5;}
+ const pad=(xmax-xmin)*.10;xmin-=pad;xmax+=pad;if(['variance','sd','range'].includes(stat))xmin=Math.max(0,xmin);
+ const bins=40,bw=(xmax-xmin)/bins,counts=new Array(bins).fill(0);
+ for(const v of vals){if(v>=xmin&&v<=xmax){let j=Math.floor((v-xmin)/bw);if(j>=bins)j=bins-1;if(j>=0)counts[j]++;}}
+ const dens=counts.map(c=>c/(vals.length*bw)),ymax=(Math.max(...dens)||1)*1.18,{X,Y}=axes(sctx,W,H,ml,mr,mt,mb,xmin,xmax,ymax,statLabel(stat));
+ for(let i=0;i<bins;i++){const x=xmin+i*bw,h=dens[i];sctx.fillStyle='rgba(36,87,166,.38)';sctx.fillRect(X(x)+1,Y(h),Math.max(1,X(x+bw)-X(x)-2),Y(0)-Y(h));}
+ sctx.fillStyle='#17202a';sctx.font='bold 13px Arial';sctx.textAlign='left';sctx.fillText('density',7,22);
+}
+function descriptions(pop,stat){
+ document.getElementById('popdesc').textContent={normal:'Normal population with mean 0 and SD 1.',uniform:'Uniform population scaled to mean 0 and SD 1.',skewed:'Right-skewed population (shifted exponential) with mean 0 and SD 1.'}[pop];
+ document.getElementById('statdesc').textContent='Distribution of '+statLabel(stat)+' across repeated samples.';
+}
+function update(){
+ const pop=popEl.value,stat=statEl.value,n=+nEl.value,reps=+nsEl.value;
+ nv.textContent=n;nsv.textContent=reps.toLocaleString();document.getElementById('statname').textContent=statName(stat);document.getElementById('statn').textContent=n;descriptions(pop,stat);
+ const vals=simulate(pop,stat,n,reps),m=vals.reduce((a,b)=>a+b,0)/reps,sd=Math.sqrt(vals.reduce((s,x)=>s+(x-m)*(x-m),0)/(reps-1));
+ document.getElementById('smean').textContent=m.toFixed(3);document.getElementById('ssd').textContent=sd.toFixed(3);drawPopulation(pop);drawSampling(vals,stat);
+}
+document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{nEl.value=b.dataset.n;update();}));
+document.querySelectorAll('[data-ns]').forEach(b=>b.addEventListener('click',()=>{nsEl.value=b.dataset.ns;update();}));
+popEl.addEventListener('change',update);statEl.addEventListener('change',update);nEl.addEventListener('input',update);nsEl.addEventListener('input',update);document.getElementById('run').addEventListener('click',update);
+update();
+</script>
+</body>
+</html>
